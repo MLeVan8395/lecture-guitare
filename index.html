@@ -148,9 +148,10 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
 </section>
 
 </main>
-<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Lecture guitare · <span id="appver">version 5</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
+<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Lecture guitare · <span id="appver">version 6</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
 <script src="contenu/formes.js"></script>
 <script src="contenu/repertoire.js"></script>
+<script src="contenu/phrases.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
@@ -617,8 +618,8 @@ function lectureMelody(area,key,chrom,niv,maxi,art,att){
     }
     return notes[i];};
 }
-// ===================== Répertoire : passages écrits (contenu/repertoire.js) =====================
-const REP=typeof REPERTOIRE!=='undefined'?REPERTOIRE:[];
+// ===================== Partitions écrites : répertoire (contenu/repertoire.js) et phrases bebop (contenu/phrases.js) =====================
+const REP=(typeof REPERTOIRE!=='undefined'?REPERTOIRE:[]).concat(typeof PHRASES!=='undefined'?PHRASES:[]);
 // Lit un passage note à note et le reprend au début quand il est terminé. Les altérations suivent l'usage : valables jusqu'à la fin de la mesure.
 function repMelody(P,area){
   const A=LAREAS.find(a=>a[0]===area)||LAREAS[0],onStr=A[0][0]==='s',center=onStr?5:(A[2]+A[3])/2,K=LKEYS.find(k=>k[3]===P.sig)||LKEYS[0];
@@ -627,14 +628,14 @@ function repMelody(P,area){
   const locOf=m=>{const c=[];for(let s=1;s<=6;s++){const fr=m-TUN[s];if(fr>=0&&fr<=15)c.push({s,fr});}
     const inz=onStr?c.filter(x=>x.s===+A[0][1]&&x.fr<=12):c.filter(x=>x.fr>=A[2]&&x.fr<=A[3]);
     if(inz.length||!c.length)return inz;const d=x=>Math.abs(x.fr-center);return [c.reduce((a,b)=>d(b)<d(a)?b:a)];};
-  const bars=P.n.split('|').map(b=>b.trim().split(/\s+/)),notes=[];let bn=0;
+  const bars=P.n.split('|').map(b=>b.trim().split(/\s+/)),notes=[],ch=P.n.includes('[');let bn=0; // ch : la partition porte des accords, il faut de la place au-dessus de la portée
   return i=>{
     while(notes.length<=i){const src=bars[bn%bars.length],b=bn++,first=notes.length,st={};let beat=0;
-      src.forEach(tk=>{const m=tk.match(/^(r|[A-G])([#b]?)(\d?)\.(\d+)(~?)$/);if(!m)throw new Error('Répertoire : note illisible « '+tk+' »');const d12=+m[4],d=d12/12;
-        if(m[1]==='r')notes.push({i:notes.length,rest:true,p:34,d,d12,bar:b,beat,name:'silence',locs:[],key:K});
+      src.forEach(tk=>{const c=tk.match(/^\[([^\]]+)\]/),m=tk.slice(c?c[0].length:0).match(/^(r|[A-G])([#b]?)(\d?)\.(\d+)(~?)$/);if(!m)throw new Error('Partition : note illisible « '+tk+' »');const d12=+m[4],d=d12/12,chordName=c?c[1]:null;
+        if(m[1]==='r')notes.push({i:notes.length,rest:true,p:34,d,d12,bar:b,beat,name:'silence',locs:[],key:K,ch,chordName});
         else{const L='CDEFGAB'.indexOf(m[1]),a=m[2]==='#'?1:m[2]==='b'?-1:0,o=+m[3],p=o*7+L,mm=12*(o+1)+NAT[L]+a-12; // la guitare sonne une octave plus bas que ce qui est écrit
           const pv=notes[notes.length-1],tied=!!(pv&&pv.tieNext&&pv.p===p),cur=st[p]!==undefined?st[p]:sigAlt(L),showAcc=!tied&&a!==cur;st[p]=a;
-          notes.push({i:notes.length,art:null,tieNext:!!m[5],tied,m:mm,L,a,p,d,d12,bar:b,beat,name:LET[L]+accTxt(a),locs:locOf(mm),showAcc,key:K});}
+          notes.push({i:notes.length,art:null,tieNext:!!m[5],tied,m:mm,L,a,p,d,d12,bar:b,beat,name:LET[L]+accTxt(a),locs:locOf(mm),showAcc,key:K,ch,chordName});}
         beat=Math.round((beat+d)*12)/12;});
       markPicks(notes.slice(first));}
     return notes[i];};
@@ -652,7 +653,7 @@ function drawStaff(get,curIdx,key,chrom,swing,showPick,met){met=met||[4,4];
     for(const k in byBar)BW=Math.max(BW,14+byBar[k].reduce((a,[j,n])=>a+(n.showAcc?24:0)+14+Math.sqrt(n.d)*22,0));
     for(const k in byBar){const L=byBar[k],w=L.map(([j,n])=>(n.showAcc?24:0)+14+Math.sqrt(n.d)*22),tot=w.reduce((a,b)=>a+b,0),sc=(BW-14)/tot;
       let acc=6;L.forEach(([j,n],q)=>{acc+=(n.showAcc?24:0)*sc;XS[j]=acc+8;acc+=(w[q]-(n.showAcc?24:0))*sc;});}}
-  const W=left+4*BW+12,LH=118+(cur.slash?18:0),T0=cur.slash?58:34,o=[];
+  const tall=!!(cur.slash||cur.ch),W=left+4*BW+12,LH=118+(tall?18:0),T0=tall?58:34,o=[]; // tall : des accords sont écrits au-dessus de la portée
 
   for(let line=0;line<NL;line++){
     const top=T0+line*LH,yP=p=>top+4*SPc-(p-BOT)*SPc/2;
@@ -661,7 +662,7 @@ function drawStaff(get,curIdx,key,chrom,swing,showPick,met){met=met||[4,4];
     o.push(`<text x="22" y="${top+54}" font-size="9" font-family="Georgia,serif" fill="currentColor">8</text>`);
     {const sig=LK[line][3],pk=line===0?prevKey:LK[0];for(let k=0;k<Math.abs(sig);k++)o.push(glyph(sig>0?'sharp':'flat',48+k*10,yP(sig>0?SIG_S[k]:SIG_F[k])+(sig>0?5:3),15));
      if(pk&&pk[0]!==LK[line][0])o.push(`<text x="10" y="${top-12}" font-size="12" font-weight="700" font-family="var(--body)" fill="var(--accent)">Nouvelle armure : tonalité de ${esc(LK[line][0])}</text>`);}
-    if(swing&&line===0)o.push(`<text x="4" y="${top-24}" font-size="13" font-weight="700" font-style="italic" font-family="Georgia,serif" fill="currentColor">Swing (croches ternaires)</text>`);
+    if(swing&&line===0)o.push(`<text x="4" y="${top-(tall?46:24)}" font-size="13" font-weight="700" font-style="italic" font-family="Georgia,serif" fill="currentColor">${tall?'Swing':'Swing (croches ternaires)'}</text>`);
     if(b0===0&&line===0)o.push(`<text x="${left-16}" y="${top+19}" font-size="21" font-weight="700" font-family="Georgia,serif" text-anchor="middle" fill="currentColor">${met[0]}</text><text x="${left-16}" y="${top+39}" font-size="21" font-weight="700" font-family="Georgia,serif" text-anchor="middle" fill="currentColor">${met[1]}</text>`);
     for(let k=0;k<=4;k++){const x=left+k*BW-(k===0?6:0);o.push(`<line x1="${k===0?left-4:x}" y1="${top}" x2="${k===0?left-4:x}" y2="${top+40}" stroke="currentColor" stroke-width="${k===0?0:1.2}"/>`);}
   }
@@ -732,20 +733,20 @@ function drawStaff(get,curIdx,key,chrom,swing,showPick,met){met=met||[4,4];
   return `<svg viewBox="0 0 ${W} ${T0+NL*LH-8}" role="img" aria-label="Partition : ${NB} mesures à lire">${o.join('')}</svg>`;
 }
 GAMES.push({id:'lecture',titre:'Lecture de notes',
-  desc:'Une partition générée au hasard, ou un passage du répertoire (Bach, Sonates et Partitas pour violon seul). Pour la partition générée, choisis la valeur rythmique la plus courte (les valeurs plus longues et leurs silences restent présents) et l\'intervalle le plus grand autorisé. Lis et joue chaque note en rythme : la note en cours est en corail, la réponse s\'affiche ensuite sur le manche. Quatre mesures sont toujours visibles, pour lire en avance.',
-  opts:()=>opt('gRep','Partition',[['','Notes au hasard (partition générée)']].concat(REP.map(p=>[p.id,esc(p.c+' : '+p.t+' ('+p.mes+')')])),'')+opt('gArea','Où jouer',LAREAS.map(a=>[a[0],a[1]]),'p0')+opt('gTon','Notes',LKEYS.map((k,i)=>[i,k[3]===0?'Tonalité de C (sans altération)':'Tonalité de '+k[0]+' ('+Math.abs(k[3])+(k[3]>0?' dièse':' bémol')+(Math.abs(k[3])>1?'s':'')+')']).concat([['chrom','Plusieurs tonalités (changements d\'armure, quelques altérations)']]),0)
+  desc:'Une partition générée au hasard, un passage du répertoire (Bach, Sonates et Partitas pour violon seul) ou une phrase originale dans le style bebop, avec ses accords. Pour la partition générée, choisis la valeur rythmique la plus courte (les valeurs plus longues et leurs silences restent présents) et l\'intervalle le plus grand autorisé. Lis et joue chaque note en rythme : la note en cours est en corail, la réponse s\'affiche ensuite sur le manche. Quatre mesures sont toujours visibles, pour lire en avance.',
+  opts:()=>opt('gRep','Partition',[['','Notes au hasard (partition générée)']].concat(REP.map(p=>[p.id,esc(p.c+' : '+p.t+(p.mes?' ('+p.mes+')':''))])),'')+opt('gArea','Où jouer',LAREAS.map(a=>[a[0],a[1]]),'p0')+opt('gTon','Notes',LKEYS.map((k,i)=>[i,k[3]===0?'Tonalité de C (sans altération)':'Tonalité de '+k[0]+' ('+Math.abs(k[3])+(k[3]>0?' dièse':' bémol')+(Math.abs(k[3])>1?'s':'')+')']).concat([['chrom','Plusieurs tonalités (changements d\'armure, quelques altérations)']]),0)
     +opt('gNiv','Valeurs rythmiques',LRYTO,1)+opt('gAtt','Attaques par mesure',[['var','Sans limite']].concat([1,2,3,4,5,6,7,8].map(n=>[n,(n>1?n+' au plus':'1 seule')])),'var')+opt('gInt','Intervalle maximal',LINTO,2)+opt('gArt','Articulations',LARTO,'none')+opt('gPick','Sens du médiator',[['show','Affiché (⊓ vers le bas, V vers le haut)'],['hide','Caché']],'show')+opt('gRev','Réponse sur le manche',REV,'0.5')+'<label class="chk" style="align-self:end;padding-bottom:8px"><input type="checkbox" id="gSnd" checked> Entendre la note (jouée en même temps que toi)</label>',
   // avec un passage du répertoire, les réglages qui fabriquent la partition (tonalité, rythme, intervalle, articulations, swing) n'ont plus d'effet
-  sync:()=>{const on=!!val('gRep');['gTon','gNiv','gAtt','gInt','gArt'].forEach(id=>{if($(id))$(id).disabled=on;});$('gFeel').disabled=on;},
+  sync:()=>{const P=REP.find(p=>p.id===val('gRep')),on=!!P;['gTon','gNiv','gAtt','gInt','gArt'].forEach(id=>{if($(id))$(id).disabled=on;});$('gFeel').disabled=on&&!P.swing;},
   make:()=>{
     const P=REP.find(p=>p.id===val('gRep'))||null,met=P?P.met:[4,4];
-    const swing=P?false:SWING,chrom=!P&&val('gTon')==='chrom',key=P?(LKEYS.find(k=>k[3]===P.sig)||LKEYS[0]):chrom?LKEYS[0]:LKEYS[+val('gTon')],niv=+val('gNiv'),get=P?repMelody(P,val('gArea')):lectureMelody(val('gArea'),key,chrom,niv,+val('gInt'),val('gArt'),val('gAtt'));
+    const swing=P?!!P.swing&&SWING:SWING,chrom=!P&&val('gTon')==='chrom',key=P?(LKEYS.find(k=>k[3]===P.sig)||LKEYS[0]):chrom?LKEYS[0]:LKEYS[+val('gTon')],niv=+val('gNiv'),get=P?repMelody(P,val('gArea')):lectureMelody(val('gArea'),key,chrom,niv,+val('gInt'),val('gArt'),val('gAtt'));
     const A=LAREAS.find(a=>a[0]===val('gArea'));
     const board=(n,show)=>{const notes=show?n.locs.map(c=>({s:c.s,fr:c.fr,m:TUN[c.s]+c.fr,root:true,txt:n.name})):[];
       const s=A[0][0]==='s'&&!P?+A[0][1]:null;drawBoard($('gBoard'),{from:0,to:Math.max(12,A[3]||0,...notes.map(x=>x.fr)),notes,hlString:s,label:'Manche',focus:show&&n.locs.length?n.locs[0].fr:(A[2]||6)});};
     return {sub:12,bpb:P?P.temps:4,items:get,len:n=>n.d12,label:()=>'lis la première ligne',
       prepare:n=>{$('gStaff').innerHTML=drawStaff(get,0,key,chrom,swing,val('gPick')==='show',met);board(n,false);
-        $('gInfo').textContent=P?P.c+', '+P.t+', '+P.ref+', '+P.mes+'. Le passage reprend au début quand il est terminé.':'';},
+        $('gInfo').textContent=P?(P.info||P.c+', '+P.t+', '+P.ref+', '+P.mes+'. Le passage reprend au début quand il est terminé.'):'';},
       show:(n)=>{const idx=n.i;$('gStaff').innerHTML=drawStaff(get,idx,key,chrom,swing,val('gPick')==='show',met);
         $('gLab').textContent='Mesure';$('gNow').className='now cur';$('gNow').textContent=n.bar+1;$('gWhere').textContent=n.rest?'Silence':'Lis la note en corail';$('gNext').innerHTML='';board(n,false);},
       revealFrac:revealFracOpt(),
