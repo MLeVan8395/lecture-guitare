@@ -57,6 +57,7 @@ h3{font-size:1.05rem;margin:0 0 8px}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 button,select{font:inherit;font-size:.95rem;border-radius:8px;border:1px solid var(--line);background:var(--sheet);color:var(--ink);padding:9px 14px;cursor:pointer}
 select{max-width:100%}
+select:disabled{opacity:.4;cursor:default}
 button:hover{border-color:var(--accent)}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--sheet);font-weight:700}
 button.ghost{background:transparent}
@@ -147,8 +148,9 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
 </section>
 
 </main>
-<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Lecture guitare · <span id="appver">version 4</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
+<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Lecture guitare · <span id="appver">version 5</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
 <script src="contenu/formes.js"></script>
+<script src="contenu/repertoire.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
@@ -411,7 +413,7 @@ function setBeats(n,on){const b=$('gBeats');if(b.children.length!==n){b.innerHTM
   [...b.children].forEach((e,i)=>e.classList.toggle('on',i===on));}
 function stopGame(){
   RUN.on=false;stopAcc();clearInterval(RUN.timer);RUN.tos.forEach(clearTimeout);RUN.tos=[];
-  $('gGo').textContent='▶ Démarrer';$('gGo').className='primary';setBeats(4,-1);
+  $('gGo').textContent='▶ Démarrer';$('gGo').className='primary';setBeats((RUN.g&&RUN.g.bpb)||4,-1);
   if(RUN.g&&RUN.g.stop)RUN.g.stop();
   $('gNow').textContent='Prêt ?';$('gNow').className='now wait';$('gWhere').textContent='';$('gNext').textContent='';$('gLab').textContent='';
 }
@@ -420,14 +422,14 @@ function stopGame(){
 function startGame(g){
   const ac=ctx();if(!ac){$('gInfo').textContent='Le son n\'est pas disponible sur cet appareil.';return;}
   stopGame();RUN.on=true;RUN.g=g;try{document.querySelector('.stage').scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}$('gGo').textContent='■ Arrêter';$('gGo').className='stop';
-  const sub=g.sub||1,bpb=4,count=bpb*sub;
+  const sub=g.sub||1,bpb=g.bpb||4,count=bpb*sub,c24=CLIC24&&bpb===4; // le clic sur 2 et 4 n'a de sens qu'à 4 temps
   let i=0,item=g.items(0),nextItem=g.items(1),left=g.len(item),k=0,step=0;
   RUN.next=ac.currentTime+.15;
   const sched=()=>{
     while(RUN.on&&RUN.next<ac.currentTime+.12){
       const t0=RUN.next,dur=60/BPMV/sub,b4=(step/sub)%bpb;
       const t=t0+(SWING&&sub===2&&step%2===1?dur/3:0); // swing : la croche du « et » tombe aux 2/3 du temps
-      if(step%sub===0&&(!g.noClick||step<count)&&(step<count||!CLIC24||b4===1||b4===3))click(t0,b4===0&&!(CLIC24&&step>=count));
+      if(step%sub===0&&(!g.noClick||step<count)&&(step<count||!c24||b4===1||b4===3))click(t0,b4===0&&!(c24&&step>=count));
       const beat=Math.floor(step/sub)%bpb;
       if(step%sub===0)at(t,()=>setBeats(bpb,beat));
       if(g.announce&&step%(bpb*sub)===0){ // à chaque début de mesure : ce qu'il faudra jouer à la mesure suivante
@@ -472,7 +474,7 @@ function nearest(fs,key,pos){let best=null;
 
 // ===================== Lecture de notes =====================
 // Glyphes musicaux : tracés de la police GNU FreeFont (FreeSerif), comme dans l'Atelier FM.
-const GLYPH={"treble": {"d": "M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z", "upm": 1000}, "qrest": {"d": "M55 208Q55 242 77.5 260.0Q100 278 130 278Q150 278 178 267L65 415Q145 487 145 544Q145 589 91 658H136L264 502Q181 404 181 356Q181 310 259 217L243 194Q203 217 176 217Q140 217 140.0 173.0Q140 129 179 84L165 62Q55 144 55 208Z", "upm": 1000}, "erest": {"d": "M136 443Q152 443 175.0 466.5Q198 490 213 511H234L138 166H101L173 426Q126 402 97.0 402.0Q68 402 43.5 422.5Q19 443 19 473Q19 495 35.0 513.5Q51 532 79 532Q106 532 122.0 513.5Q138 495 138 473Q138 458 131 445Q135 443 136 443Z", "upm": 1000}, "sharp": {"d": "M647 1497H693L698 1492V1188L817 1248L820 1246V1105Q817 1098 698 1038V665L820 720V585Q819 581 698 514V217L693 213H647L642 217V490L354 350V4L349 0H307L302 4V325L173 265V407Q173 413 302 473V852H300L173 796V935L302 1000V1287L307 1291H349L354 1287V1025L642 1159V1492ZM354 874V497L642 636V1008Z", "upm": 2048}, "flat": {"d": "M187 1497H232L237 1491V530H240Q410 767 555 767Q782 764 802 507Q773 82 184 -6L181 -3V1491ZM237 423V68Q655 167 655 472Q656 485 656 497Q656 645 507 653Q388 653 237 423Z", "upm": 2048}};
+const GLYPH={"natural": {"d": "M177 1497H218L224 1492V1027L558 1188L560 1186V5L556 0H516L511 5V490L174 330H172V1492ZM224 877V490H226L511 634V1017H509Z", "upm": 2048}, "treble": {"d": "M434 2Q464 -103 464 -170Q464 -223 427.0 -257.0Q390 -291 337 -291Q287 -291 250.0 -261.5Q213 -232 213 -190Q213 -160 233.5 -133.5Q254 -107 283.5 -107.0Q313 -107 331.5 -128.5Q350 -150 350 -178Q350 -240 280 -240Q298 -268 338 -268Q353 -268 368.5 -263.5Q384 -259 401.0 -248.0Q418 -237 428.5 -213.5Q439 -190 439 -157Q439 -136 411 -6Q389 -12 356 -12Q259 -12 189.5 60.0Q120 132 120 232Q120 267 131.5 303.0Q143 339 157.5 366.5Q172 394 200.5 428.5Q229 463 248.5 483.5Q268 504 303 539Q280 621 280 689Q280 779 313.0 839.5Q346 900 379 900Q389 900 401.5 887.0Q414 874 426.0 851.0Q438 828 446.5 790.5Q455 753 455 710Q455 551 342 447L368 329Q384 332 397 332Q458 332 500.0 282.5Q542 233 542 162Q542 44 434 2ZM426 746Q426 801 394 801Q358 801 333.0 748.0Q308 695 308 630Q308 588 321 557Q359 580 392.5 639.5Q426 699 426 746ZM498 128Q498 183 466.0 216.0Q434 249 383 249L428 23Q498 52 498 128ZM407 17 361 247Q334 241 311.5 214.0Q289 187 289 158Q289 143 295.0 128.5Q301 114 309.5 104.0Q318 94 327.0 86.0Q336 78 342.0 74.5Q348 71 348 71L340 66Q307 75 277.5 106.0Q248 137 248 184Q248 231 277.5 270.5Q307 310 343 323L325 430Q168 299 168 177Q168 104 223.0 55.0Q278 6 348 6Q365 6 407 17Z", "upm": 1000}, "qrest": {"d": "M55 208Q55 242 77.5 260.0Q100 278 130 278Q150 278 178 267L65 415Q145 487 145 544Q145 589 91 658H136L264 502Q181 404 181 356Q181 310 259 217L243 194Q203 217 176 217Q140 217 140.0 173.0Q140 129 179 84L165 62Q55 144 55 208Z", "upm": 1000}, "erest": {"d": "M136 443Q152 443 175.0 466.5Q198 490 213 511H234L138 166H101L173 426Q126 402 97.0 402.0Q68 402 43.5 422.5Q19 443 19 473Q19 495 35.0 513.5Q51 532 79 532Q106 532 122.0 513.5Q138 495 138 473Q138 458 131 445Q135 443 136 443Z", "upm": 1000}, "sharp": {"d": "M647 1497H693L698 1492V1188L817 1248L820 1246V1105Q817 1098 698 1038V665L820 720V585Q819 581 698 514V217L693 213H647L642 217V490L354 350V4L349 0H307L302 4V325L173 265V407Q173 413 302 473V852H300L173 796V935L302 1000V1287L307 1291H349L354 1287V1025L642 1159V1492ZM354 874V497L642 636V1008Z", "upm": 2048}, "flat": {"d": "M187 1497H232L237 1491V530H240Q410 767 555 767Q782 764 802 507Q773 82 184 -6L181 -3V1491ZM237 423V68Q655 167 655 472Q656 485 656 497Q656 645 507 653Q388 653 237 423Z", "upm": 2048}};
 function glyph(name,x,y,size){const g=GLYPH[name];const k=size/g.upm;return `<path d="${g.d}" transform="translate(${x} ${y}) scale(${k} ${-k})" fill="currentColor"/>`;}
 // tonalités de lecture : [nom, classe de hauteur, lettre, nombre d'altérations à l'armure (+ dièses, − bémols)]
 const LKEYS=[['C',0,0,0],['G',7,4,1],['D',2,1,2],['A',9,5,3],['E',4,2,4],['F',5,3,-1],['B♭',10,6,-2],['E♭',3,2,-3]];
@@ -615,7 +617,29 @@ function lectureMelody(area,key,chrom,niv,maxi,art,att){
     }
     return notes[i];};
 }
-function drawStaff(get,curIdx,key,chrom,swing,showPick){
+// ===================== Répertoire : passages écrits (contenu/repertoire.js) =====================
+const REP=typeof REPERTOIRE!=='undefined'?REPERTOIRE:[];
+// Lit un passage note à note et le reprend au début quand il est terminé. Les altérations suivent l'usage : valables jusqu'à la fin de la mesure.
+function repMelody(P,area){
+  const A=LAREAS.find(a=>a[0]===area)||LAREAS[0],onStr=A[0][0]==='s',center=onStr?5:(A[2]+A[3])/2,K=LKEYS.find(k=>k[3]===P.sig)||LKEYS[0];
+  const sigAlt=L=>P.sig>0?([3,0,4,1,5,2,6].slice(0,P.sig).includes(L)?1:0):P.sig<0?([6,2,5,1,4,0,3].slice(0,-P.sig).includes(L)?-1:0):0;
+  // où jouer la note : dans la zone choisie si elle y est, sinon à l'endroit le plus proche de cette zone
+  const locOf=m=>{const c=[];for(let s=1;s<=6;s++){const fr=m-TUN[s];if(fr>=0&&fr<=15)c.push({s,fr});}
+    const inz=onStr?c.filter(x=>x.s===+A[0][1]&&x.fr<=12):c.filter(x=>x.fr>=A[2]&&x.fr<=A[3]);
+    if(inz.length||!c.length)return inz;const d=x=>Math.abs(x.fr-center);return [c.reduce((a,b)=>d(b)<d(a)?b:a)];};
+  const bars=P.n.split('|').map(b=>b.trim().split(/\s+/)),notes=[];let bn=0;
+  return i=>{
+    while(notes.length<=i){const src=bars[bn%bars.length],b=bn++,first=notes.length,st={};let beat=0;
+      src.forEach(tk=>{const m=tk.match(/^(r|[A-G])([#b]?)(\d?)\.(\d+)(~?)$/);if(!m)throw new Error('Répertoire : note illisible « '+tk+' »');const d12=+m[4],d=d12/12;
+        if(m[1]==='r')notes.push({i:notes.length,rest:true,p:34,d,d12,bar:b,beat,name:'silence',locs:[],key:K});
+        else{const L='CDEFGAB'.indexOf(m[1]),a=m[2]==='#'?1:m[2]==='b'?-1:0,o=+m[3],p=o*7+L,mm=12*(o+1)+NAT[L]+a-12; // la guitare sonne une octave plus bas que ce qui est écrit
+          const pv=notes[notes.length-1],tied=!!(pv&&pv.tieNext&&pv.p===p),cur=st[p]!==undefined?st[p]:sigAlt(L),showAcc=!tied&&a!==cur;st[p]=a;
+          notes.push({i:notes.length,art:null,tieNext:!!m[5],tied,m:mm,L,a,p,d,d12,bar:b,beat,name:LET[L]+accTxt(a),locs:locOf(mm),showAcc,key:K});}
+        beat=Math.round((beat+d)*12)/12;});
+      markPicks(notes.slice(first));}
+    return notes[i];};
+}
+function drawStaff(get,curIdx,key,chrom,swing,showPick,met){met=met||[4,4];
   // toujours 4 mesures par ligne : la ligne en cours et la suivante ; on tourne la page toutes les 4 mesures
   const NL=2,NB=8,cur=get(curIdx),b0=Math.floor(cur.bar/4)*4,SPc=10,BOT=30;let BW=165;
   const firstIdx=(()=>{let i=curIdx;while(i>0&&get(i-1).bar>=b0)i--;return i;})();
@@ -638,7 +662,7 @@ function drawStaff(get,curIdx,key,chrom,swing,showPick){
     {const sig=LK[line][3],pk=line===0?prevKey:LK[0];for(let k=0;k<Math.abs(sig);k++)o.push(glyph(sig>0?'sharp':'flat',48+k*10,yP(sig>0?SIG_S[k]:SIG_F[k])+(sig>0?5:3),15));
      if(pk&&pk[0]!==LK[line][0])o.push(`<text x="10" y="${top-12}" font-size="12" font-weight="700" font-family="var(--body)" fill="var(--accent)">Nouvelle armure : tonalité de ${esc(LK[line][0])}</text>`);}
     if(swing&&line===0)o.push(`<text x="4" y="${top-24}" font-size="13" font-weight="700" font-style="italic" font-family="Georgia,serif" fill="currentColor">Swing (croches ternaires)</text>`);
-    if(b0===0&&line===0)o.push(`<text x="${left-16}" y="${top+19}" font-size="21" font-weight="700" font-family="Georgia,serif" text-anchor="middle" fill="currentColor">4</text><text x="${left-16}" y="${top+39}" font-size="21" font-weight="700" font-family="Georgia,serif" text-anchor="middle" fill="currentColor">4</text>`);
+    if(b0===0&&line===0)o.push(`<text x="${left-16}" y="${top+19}" font-size="21" font-weight="700" font-family="Georgia,serif" text-anchor="middle" fill="currentColor">${met[0]}</text><text x="${left-16}" y="${top+39}" font-size="21" font-weight="700" font-family="Georgia,serif" text-anchor="middle" fill="currentColor">${met[1]}</text>`);
     for(let k=0;k<=4;k++){const x=left+k*BW-(k===0?6:0);o.push(`<line x1="${k===0?left-4:x}" y1="${top}" x2="${k===0?left-4:x}" y2="${top+40}" stroke="currentColor" stroke-width="${k===0?0:1.2}"/>`);}
   }
   // notes
@@ -665,7 +689,7 @@ function drawStaff(get,curIdx,key,chrom,swing,showPick){
     if(n.ghost)o.push(`<path d="M${x-5.5} ${y-5.5} L${x+5.5} ${y+5.5} M${x-5.5} ${y+5.5} L${x+5.5} ${y-5.5}" fill="none" stroke="${col}" stroke-width="2.3" stroke-linecap="round"/>`);
     else if(n.slash)o.push(open?`<polygon points="${x-7},${y+5} ${x-3},${y+8} ${x+7},${y-5} ${x+3},${y-8}" fill="none" stroke="${col}" stroke-width="2"/>`:`<line x1="${x-6}" y1="${y+6}" x2="${x+6}" y2="${y-6}" stroke="${col}" stroke-width="5"/>`);
     else o.push(`<ellipse cx="${x}" cy="${y}" rx="6.6" ry="4.6" transform="rotate(-18 ${x} ${y})" ${open?`fill="none" stroke="${col}" stroke-width="2.4"`:`fill="${col}"`}/>`);
-    if(n.showAcc)o.push(`<g style="color:${col}">`+glyph(n.a>0?'sharp':'flat',x-(n.a>0?30:27),y+(n.a>0?10:6),30)+'</g>');
+    if(n.showAcc)o.push(`<g style="color:${col}">`+glyph(n.a>0?'sharp':n.a<0?'flat':'natural',x-(n.a>0?30:n.a<0?27:25),y+(n.a>0?10:n.a<0?6:10),30)+'</g>');
     if(n.d12===9||n.d12===18||n.d12===36)o.push(`<circle cx="${x+11}" cy="${Math.round(n.p)%2?y:y-5}" r="2.2" fill="${col}"/>`); // valeurs pointées
     if(n.d<4){const g=Math.floor(n.beat+1e-6),key2=n.bar+':'+g;let G=groups.find(z=>z.k===key2);if(!G&&n.d12<12){G={k:key2,ns:[],top,trip:false};groups.push(G);}
       if(G&&(n.d12===4||n.d12===8))G.trip=true;
@@ -708,21 +732,25 @@ function drawStaff(get,curIdx,key,chrom,swing,showPick){
   return `<svg viewBox="0 0 ${W} ${T0+NL*LH-8}" role="img" aria-label="Partition : ${NB} mesures à lire">${o.join('')}</svg>`;
 }
 GAMES.push({id:'lecture',titre:'Lecture de notes',
-  desc:'Une partition générée au hasard : choisis la valeur rythmique la plus courte (les valeurs plus longues et leurs silences restent présents) et l\'intervalle le plus grand autorisé. Lis et joue chaque note en rythme : la note en cours est en corail, la réponse s\'affiche ensuite sur le manche. Quatre mesures sont toujours visibles, pour lire en avance.',
-  opts:()=>opt('gArea','Où jouer',LAREAS.map(a=>[a[0],a[1]]),'p0')+opt('gTon','Notes',LKEYS.map((k,i)=>[i,k[3]===0?'Tonalité de C (sans altération)':'Tonalité de '+k[0]+' ('+Math.abs(k[3])+(k[3]>0?' dièse':' bémol')+(Math.abs(k[3])>1?'s':'')+')']).concat([['chrom','Plusieurs tonalités (changements d\'armure, quelques altérations)']]),0)
+  desc:'Une partition générée au hasard, ou un passage du répertoire (Bach, Sonates et Partitas pour violon seul). Pour la partition générée, choisis la valeur rythmique la plus courte (les valeurs plus longues et leurs silences restent présents) et l\'intervalle le plus grand autorisé. Lis et joue chaque note en rythme : la note en cours est en corail, la réponse s\'affiche ensuite sur le manche. Quatre mesures sont toujours visibles, pour lire en avance.',
+  opts:()=>opt('gRep','Partition',[['','Notes au hasard (partition générée)']].concat(REP.map(p=>[p.id,esc(p.c+' : '+p.t+' ('+p.mes+')')])),'')+opt('gArea','Où jouer',LAREAS.map(a=>[a[0],a[1]]),'p0')+opt('gTon','Notes',LKEYS.map((k,i)=>[i,k[3]===0?'Tonalité de C (sans altération)':'Tonalité de '+k[0]+' ('+Math.abs(k[3])+(k[3]>0?' dièse':' bémol')+(Math.abs(k[3])>1?'s':'')+')']).concat([['chrom','Plusieurs tonalités (changements d\'armure, quelques altérations)']]),0)
     +opt('gNiv','Valeurs rythmiques',LRYTO,1)+opt('gAtt','Attaques par mesure',[['var','Sans limite']].concat([1,2,3,4,5,6,7,8].map(n=>[n,(n>1?n+' au plus':'1 seule')])),'var')+opt('gInt','Intervalle maximal',LINTO,2)+opt('gArt','Articulations',LARTO,'none')+opt('gPick','Sens du médiator',[['show','Affiché (⊓ vers le bas, V vers le haut)'],['hide','Caché']],'show')+opt('gRev','Réponse sur le manche',REV,'0.5')+'<label class="chk" style="align-self:end;padding-bottom:8px"><input type="checkbox" id="gSnd" checked> Entendre la note (jouée en même temps que toi)</label>',
+  // avec un passage du répertoire, les réglages qui fabriquent la partition (tonalité, rythme, intervalle, articulations, swing) n'ont plus d'effet
+  sync:()=>{const on=!!val('gRep');['gTon','gNiv','gAtt','gInt','gArt'].forEach(id=>{if($(id))$(id).disabled=on;});$('gFeel').disabled=on;},
   make:()=>{
-    const swing=SWING,chrom=val('gTon')==='chrom',key=chrom?LKEYS[0]:LKEYS[+val('gTon')],niv=+val('gNiv'),get=lectureMelody(val('gArea'),key,chrom,niv,+val('gInt'),val('gArt'),val('gAtt'));
+    const P=REP.find(p=>p.id===val('gRep'))||null,met=P?P.met:[4,4];
+    const swing=P?false:SWING,chrom=!P&&val('gTon')==='chrom',key=P?(LKEYS.find(k=>k[3]===P.sig)||LKEYS[0]):chrom?LKEYS[0]:LKEYS[+val('gTon')],niv=+val('gNiv'),get=P?repMelody(P,val('gArea')):lectureMelody(val('gArea'),key,chrom,niv,+val('gInt'),val('gArt'),val('gAtt'));
     const A=LAREAS.find(a=>a[0]===val('gArea'));
     const board=(n,show)=>{const notes=show?n.locs.map(c=>({s:c.s,fr:c.fr,m:TUN[c.s]+c.fr,root:true,txt:n.name})):[];
-      const s=A[0][0]==='s'?+A[0][1]:null;drawBoard($('gBoard'),{from:0,to:Math.max(12,A[3]||0),notes,hlString:s,label:'Manche',focus:show&&n.locs.length?n.locs[0].fr:(A[2]||6)});};
-    return {sub:12,items:get,len:n=>n.d12,label:()=>'lis la première ligne',
-      prepare:n=>{$('gStaff').innerHTML=drawStaff(get,0,key,chrom,swing,val('gPick')==='show');board(n,false);},
-      show:(n)=>{const idx=n.i;$('gStaff').innerHTML=drawStaff(get,idx,key,chrom,swing,val('gPick')==='show');
+      const s=A[0][0]==='s'&&!P?+A[0][1]:null;drawBoard($('gBoard'),{from:0,to:Math.max(12,A[3]||0,...notes.map(x=>x.fr)),notes,hlString:s,label:'Manche',focus:show&&n.locs.length?n.locs[0].fr:(A[2]||6)});};
+    return {sub:12,bpb:P?P.temps:4,items:get,len:n=>n.d12,label:()=>'lis la première ligne',
+      prepare:n=>{$('gStaff').innerHTML=drawStaff(get,0,key,chrom,swing,val('gPick')==='show',met);board(n,false);
+        $('gInfo').textContent=P?P.c+', '+P.t+', '+P.ref+', '+P.mes+'. Le passage reprend au début quand il est terminé.':'';},
+      show:(n)=>{const idx=n.i;$('gStaff').innerHTML=drawStaff(get,idx,key,chrom,swing,val('gPick')==='show',met);
         $('gLab').textContent='Mesure';$('gNow').className='now cur';$('gNow').textContent=n.bar+1;$('gWhere').textContent=n.rest?'Silence':'Lis la note en corail';$('gNext').innerHTML='';board(n,false);},
       revealFrac:revealFracOpt(),
       reveal:n=>{if(+val('gRev')<0||n.rest)return;board(n,true);$('gWhere').textContent=n.name+' : '+n.locs.map(c=>'case '+c.fr+' '+CORDE_DE[c.s]).join(', ou ');},
-      step:(n,k,t,dur)=>{if(k!==0||n.rest||n.tied||!$('gSnd').checked)return;if(n.tieNext){const bd=60/BPMV,off=SWING&&n.beat%1?bd/6:0;pluck(n.m,t+off,n.art?.8:.6,bd*.95-off);return;}const bd=60/BPMV;if(SWING&&n.d12===6){const off=n.beat%1!==0;const a=swingArt(n.beat,off,bd);pluck(n.m,t+(off?bd/6:0),a.vel,a.len);}else{const L=Math.max(.25,n.d*bd*.9);pluck(n.m,t,n.art==='acc'?.78:n.art==='marc'?.85:.5,n.art==='stacc'?Math.min(L,.12):n.art==='marc'?Math.min(L,bd*.6):L);}}};
+      step:(n,k,t,dur)=>{if(k!==0||n.rest||n.tied||!$('gSnd').checked)return;if(n.tieNext){const bd=60/BPMV,off=swing&&n.beat%1?bd/6:0;pluck(n.m,t+off,n.art?.8:.6,bd*.95-off);return;}const bd=60/BPMV;if(swing&&n.d12===6){const off=n.beat%1!==0;const a=swingArt(n.beat,off,bd);pluck(n.m,t+(off?bd/6:0),a.vel,a.len);}else{const L=Math.max(.25,n.d*bd*.9);pluck(n.m,t,n.art==='acc'?.78:n.art==='marc'?.85:.5,n.art==='stacc'?Math.min(L,.12):n.art==='marc'?Math.min(L,bd*.6):L);}}};
   }});
 
 // ===================== Lecture de grille (accords et notation rythmique) =====================
@@ -826,7 +854,7 @@ let GI=0;
 
 function preview(){ // aperçu du premier élément, sans démarrer
   if(RUN.on)return;
-  try{const gm=GAMES[GI].make();const it=gm.items(0);if(gm.prepare)gm.prepare(it);$('gLab').textContent='';$('gNow').className='now wait';$('gNow').textContent='Prêt ?';$('gWhere').textContent='';$('gNext').innerHTML='Pour commencer : <span class="nx">'+esc(gm.label(it))+'</span>';}catch(e){console.error(e);}
+  try{const gm=GAMES[GI].make();setBeats(gm.bpb||4,-1);const it=gm.items(0);if(gm.prepare)gm.prepare(it);$('gLab').textContent='';$('gNow').className='now wait';$('gNow').textContent='Prêt ?';$('gWhere').textContent='';$('gNext').innerHTML='Pour commencer : <span class="nx">'+esc(gm.label(it))+'</span>';}catch(e){console.error(e);}
 }
 function setTempo(t){TEMPO=t;if(BPM[t])BPMV=BPM[t];store.set('tempo',t);store.set('bpm',BPMV);showTempo();}
 function showTempo(){document.querySelectorAll('.tempo [data-t]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===TEMPO&&BPMV===BPM[TEMPO]));$('bpmVal').textContent=BPMV+' à la noire';}
@@ -837,7 +865,8 @@ function setThemeBtn(){const l=document.documentElement.getAttribute('data-theme
 function renderGame(){
   const g=GAMES[GI];NEXTWORD=g.id==='grille'?'Accord suivant':'Note suivante';
   $('gTitle').textContent=g.titre;$('gDesc').textContent=g.desc;$('gOpts').innerHTML=g.opts();$('gStaff').innerHTML='';
-  $('gOpts').querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{store.set('g-'+s.id,s.value);if(RUN.on)stopGame();preview();}));
+  const sync=()=>{$('gFeel').disabled=false;if(g.sync)g.sync();};sync();
+  $('gOpts').querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{store.set('g-'+s.id,s.value);sync();if(RUN.on)stopGame();preview();}));
   $('gInfo').textContent='';preview();
 }
 
