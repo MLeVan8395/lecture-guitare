@@ -1,5 +1,5 @@
 // ============================================================================
-//  Lecture guitare — répertoire : passages à lire tels qu'ils sont écrits
+//  Déchiffrage Guitare — répertoire : passages à lire tels qu'ils sont écrits
 //
 //  Musique : Jean-Sébastien Bach (1685-1750), Sonates et Partitas pour violon seul, domaine public.
 //  Saisie des notes : Mutopia Project (www.mutopiaproject.org)

@@ -1,6 +1,6 @@
-# Lecture guitare
+# Déchiffrage Guitare
 
-Une appli gratuite de **lecture à vue pour guitaristes** : lecture de notes sur portée et lecture de grilles d'accords en notation rythmique, toujours au métronome.
+Une appli gratuite de **déchiffrage pour guitaristes** : lecture de notes sur portée et lecture de grilles d'accords en notation rythmique, toujours au métronome.
 
 C'est la partie « Lecture » de la [Boîte à outils guitare](https://mlevan8395.github.io/toolbox-guitare/), devenue une appli à part, conçue pour les élèves de guitare musiques actuelles et jazz en conservatoire.
 
@@ -18,7 +18,7 @@ L'appli fonctionne ensuite **hors ligne**, son compris. Elle se met à jour tout
 
 | Onglet | Contenu |
 |---|---|
-| **Lecture de notes** | Passages du répertoire (Bach, Sonates et Partitas pour violon seul, à 3 ou 4 temps), phrases originales dans le style bebop (ii–V–I, anatole, blues, avec les accords et un accompagnement jazz : orgue, contrebasse, batterie) ou partition générée au hasard, en position ou le long d'une corde, dans une tonalité ou avec changements d'armure ; valeur rythmique la plus courte réglable (des rondes aux doubles croches ; les valeurs plus longues et leurs silences restent présents), nombre d'attaques par mesure, intervalle maximal, articulations, sens du médiator ; réponse affichée sur le manche |
+| **Lecture de notes** | Passages du répertoire (Bach, Sonates et Partitas pour violon seul, à 3 ou 4 temps), phrases originales dans le style bebop (ii–V–I, anatole, blues, avec les accords et un accompagnement jazz : orgue, contrebasse, batterie) ou partition générée au hasard, en position ou le long d'une corde, dans une tonalité (jusqu'à 5 dièses ou 5 bémols) ou avec changements d'armure ; valeur rythmique la plus courte réglable (des rondes aux doubles croches ; les valeurs plus longues et leurs silences restent présents), nombre d'attaques par mesure, intervalle maximal, articulations, sens du médiator ; réponse affichée sur le manche |
 | **Lecture de grille** | Accords et notation rythmique (des accords ouverts aux accords enrichis), mêmes réglages de rythme, doubles croches en cellules funk (syncopette), ghost notes en option (débit continu en croches ou doubles croches, chaque coup joué ou étouffé), position de l'accord sur le manche, accompagnement pop, funk, reggae ou swing |
 
 Tempo lent, moyen ou rapide, réglable de 5 en 5 ; croches droites ou swing, et clic sur 2 et 4 en option. Un bouton **Droitier / Gaucher** retourne le manche.

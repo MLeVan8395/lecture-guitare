@@ -1,5 +1,5 @@
 // =====================================================================
-//  Lecture guitare — positions d'accords de la lecture de grille (contenu pédagogique)
+//  Déchiffrage Guitare — positions d'accords de la lecture de grille (contenu pédagogique)
 //  © 2026 Mickael Le Van – Tous droits réservés (voir LICENSE). Extrait de la Boîte à outils guitare.
 //
 //  Chaque forme est une liste de notes [corde, case, intervalle] :

@@ -1,5 +1,5 @@
 // ============================================================================
-//  Lecture guitare — phrases originales dans le style bebop (contenu pédagogique)
+//  Déchiffrage Guitare — phrases originales dans le style bebop (contenu pédagogique)
 //  © 2026 Mickael Le Van – Tous droits réservés (voir LICENSE). Phrases écrites pour cette appli :
 //  ce ne sont pas des relevés, elles ne reprennent aucun thème ni solo existant.
 //

@@ -1,6 +1,6 @@
 {
-  "name": "Lecture guitare",
-  "short_name": "Lecture guitare",
+  "name": "Déchiffrage Guitare",
+  "short_name": "Déchiffrage",
   "description": "Lecture de notes et lecture de grilles d'accords pour guitaristes, toujours au métronome.",
   "lang": "fr",
   "start_url": "./",
