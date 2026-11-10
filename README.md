@@ -16,9 +16,11 @@ L'appli fonctionne ensuite **hors ligne**, son compris. Elle se met à jour tout
 
 ## Ce qu'on y trouve
 
+Chaque exercice se travaille de deux façons : par **niveaux** (une progression toute faite, 20 niveaux pour la lecture de notes et 14 pour la lecture de grille) ou en **réglages libres**.
+
 | Onglet | Contenu |
 |---|---|
-| **Lecture de notes** | Passages du répertoire (Bach, Sonates et Partitas pour violon seul, à 3 ou 4 temps), phrases originales dans le style bebop (ii–V–I, anatole, blues, avec les accords et un accompagnement jazz : orgue, contrebasse, batterie) ou partition générée au hasard, en position ou le long d'une corde, dans une tonalité (jusqu'à 5 dièses ou 5 bémols) ou avec changements d'armure ; valeur rythmique la plus courte réglable (des rondes aux doubles croches ; les valeurs plus longues et leurs silences restent présents), nombre d'attaques par mesure, intervalle maximal, articulations, sens du médiator ; réponse affichée sur le manche |
+| **Lecture de notes** | Passages du répertoire (Bach, Sonates et Partitas pour violon seul, à 3 ou 4 temps), phrases originales dans le style bebop (ii–V–I, anatole, blues, avec les accords et un accompagnement jazz : orgue, contrebasse, batterie) ou partition générée au hasard, en position ou le long d'une corde, dans une tonalité (jusqu'à 5 dièses ou 5 bémols), avec modulations au relatif mineur et aux tons voisins, ou avec changements d'armure ; valeur rythmique la plus courte réglable (des rondes aux doubles croches ; les valeurs plus longues et leurs silences restent présents), nombre d'attaques par mesure, intervalle maximal, articulations, sens du médiator ; réponse affichée sur le manche |
 | **Lecture de grille** | Accords et notation rythmique (des accords ouverts aux accords enrichis), mêmes réglages de rythme, doubles croches en cellules funk (syncopette), ghost notes en option (débit continu en croches ou doubles croches, chaque coup joué ou étouffé), position de l'accord sur le manche, accompagnement pop, funk, reggae ou swing |
 
 Tempo lent, moyen ou rapide, réglable de 5 en 5 ; croches droites ou swing, et clic sur 2 et 4 en option. Un bouton **Droitier / Gaucher** retourne le manche.
@@ -28,6 +30,7 @@ Tempo lent, moyen ou rapide, réglable de 5 en 5 ; croches droites ou swing, et 
 - **Aucune donnée collectée.** Pas de compte, pas de publicité ; les réglages restent dans le navigateur.
 - **Notation française** : notes seules en Do, Ré, Mi… ; accords et tonalités en lettres (C, Am7, « en G »).
 - Les positions d'accords de la lecture de grille sont dans `contenu/formes.js`.
+- Les niveaux sont dans `contenu/niveaux.js`, une ligne par niveau : on peut les modifier, en ajouter ou les déplacer sans toucher au code.
 - Les passages du répertoire sont dans `contenu/repertoire.js` et les phrases bebop dans `contenu/phrases.js` : on peut en ajouter sans toucher au code.
 
 ## Crédits
