@@ -148,7 +148,7 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
 </section>
 
 </main>
-<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Lecture guitare · <span id="appver">version 6</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
+<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Lecture guitare · <span id="appver">version 7</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
 <script src="contenu/formes.js"></script>
 <script src="contenu/repertoire.js"></script>
 <script src="contenu/phrases.js"></script>
@@ -628,15 +628,17 @@ function repMelody(P,area){
   const locOf=m=>{const c=[];for(let s=1;s<=6;s++){const fr=m-TUN[s];if(fr>=0&&fr<=15)c.push({s,fr});}
     const inz=onStr?c.filter(x=>x.s===+A[0][1]&&x.fr<=12):c.filter(x=>x.fr>=A[2]&&x.fr<=A[3]);
     if(inz.length||!c.length)return inz;const d=x=>Math.abs(x.fr-center);return [c.reduce((a,b)=>d(b)<d(a)?b:a)];};
-  const bars=P.n.split('|').map(b=>b.trim().split(/\s+/)),notes=[],ch=P.n.includes('[');let bn=0; // ch : la partition porte des accords, il faut de la place au-dessus de la portée
+  const bars=P.n.split('|').map(b=>b.trim().split(/\s+/)),notes=[],ch=P.n.includes('[');let bn=0,curCh=null,pos=null; // ch : la partition porte des accords, il faut de la place au-dessus de la portée
   return i=>{
-    while(notes.length<=i){const src=bars[bn%bars.length],b=bn++,first=notes.length,st={};let beat=0;
+    while(notes.length<=i){const src=bars[bn%bars.length],b=bn++,first=notes.length,st={};let beat=0,half=false;
       src.forEach(tk=>{const c=tk.match(/^\[([^\]]+)\]/),m=tk.slice(c?c[0].length:0).match(/^(r|[A-G])([#b]?)(\d?)\.(\d+)(~?)$/);if(!m)throw new Error('Partition : note illisible « '+tk+' »');const d12=+m[4],d=d12/12,chordName=c?c[1]:null;
-        if(m[1]==='r')notes.push({i:notes.length,rest:true,p:34,d,d12,bar:b,beat,name:'silence',locs:[],key:K,ch,chordName});
+        if(c){const sh=chordShape(c[1].replace('°7','dim7'),5,pos);pos=sh.c!==undefined?sh.c:pos;curCh={name:c[1].replace('°7','dim7'),pl:sh.pl,f:sh.f};if(beat>0)half=true;} // position de l'accord, pour l'accompagnement
+        if(m[1]==='r')notes.push({i:notes.length,rest:true,p:34,d,d12,bar:b,beat,name:'silence',locs:[],key:K,ch,chordName,chord:curCh});
         else{const L='CDEFGAB'.indexOf(m[1]),a=m[2]==='#'?1:m[2]==='b'?-1:0,o=+m[3],p=o*7+L,mm=12*(o+1)+NAT[L]+a-12; // la guitare sonne une octave plus bas que ce qui est écrit
           const pv=notes[notes.length-1],tied=!!(pv&&pv.tieNext&&pv.p===p),cur=st[p]!==undefined?st[p]:sigAlt(L),showAcc=!tied&&a!==cur;st[p]=a;
-          notes.push({i:notes.length,art:null,tieNext:!!m[5],tied,m:mm,L,a,p,d,d12,bar:b,beat,name:LET[L]+accTxt(a),locs:locOf(mm),showAcc,key:K,ch,chordName});}
+          notes.push({i:notes.length,art:null,tieNext:!!m[5],tied,m:mm,L,a,p,d,d12,bar:b,beat,name:LET[L]+accTxt(a),locs:locOf(mm),showAcc,key:K,ch,chordName,chord:curCh});}
         beat=Math.round((beat+d)*12)/12;});
+      notes.slice(first).forEach(n=>n.chLen=half?2:4); // deux accords dans la mesure : chacun dure 2 temps
       markPicks(notes.slice(first));}
     return notes[i];};
 }
@@ -734,24 +736,31 @@ function drawStaff(get,curIdx,key,chrom,swing,showPick,met){met=met||[4,4];
 }
 GAMES.push({id:'lecture',titre:'Lecture de notes',
   desc:'Une partition générée au hasard, un passage du répertoire (Bach, Sonates et Partitas pour violon seul) ou une phrase originale dans le style bebop, avec ses accords. Pour la partition générée, choisis la valeur rythmique la plus courte (les valeurs plus longues et leurs silences restent présents) et l\'intervalle le plus grand autorisé. Lis et joue chaque note en rythme : la note en cours est en corail, la réponse s\'affiche ensuite sur le manche. Quatre mesures sont toujours visibles, pour lire en avance.',
-  opts:()=>opt('gRep','Partition',[['','Notes au hasard (partition générée)']].concat(REP.map(p=>[p.id,esc(p.c+' : '+p.t+(p.mes?' ('+p.mes+')':''))])),'')+opt('gArea','Où jouer',LAREAS.map(a=>[a[0],a[1]]),'p0')+opt('gTon','Notes',LKEYS.map((k,i)=>[i,k[3]===0?'Tonalité de C (sans altération)':'Tonalité de '+k[0]+' ('+Math.abs(k[3])+(k[3]>0?' dièse':' bémol')+(Math.abs(k[3])>1?'s':'')+')']).concat([['chrom','Plusieurs tonalités (changements d\'armure, quelques altérations)']]),0)
+  opts:()=>opt('gRep','Partition',[['','Notes au hasard (partition générée)']].concat(REP.map(p=>[p.id,esc(p.c+' : '+p.t+(p.mes?' ('+p.mes+')':''))])),'')+opt('gAccN','Accompagnement (phrases avec accords)',[['none','Aucun : métronome seul'],['swing2','Jazz : orgue, contrebasse, batterie']],'swing2')+opt('gArea','Où jouer',LAREAS.map(a=>[a[0],a[1]]),'p0')+opt('gTon','Notes',LKEYS.map((k,i)=>[i,k[3]===0?'Tonalité de C (sans altération)':'Tonalité de '+k[0]+' ('+Math.abs(k[3])+(k[3]>0?' dièse':' bémol')+(Math.abs(k[3])>1?'s':'')+')']).concat([['chrom','Plusieurs tonalités (changements d\'armure, quelques altérations)']]),0)
     +opt('gNiv','Valeurs rythmiques',LRYTO,1)+opt('gAtt','Attaques par mesure',[['var','Sans limite']].concat([1,2,3,4,5,6,7,8].map(n=>[n,(n>1?n+' au plus':'1 seule')])),'var')+opt('gInt','Intervalle maximal',LINTO,2)+opt('gArt','Articulations',LARTO,'none')+opt('gPick','Sens du médiator',[['show','Affiché (⊓ vers le bas, V vers le haut)'],['hide','Caché']],'show')+opt('gRev','Réponse sur le manche',REV,'0.5')+'<label class="chk" style="align-self:end;padding-bottom:8px"><input type="checkbox" id="gSnd" checked> Entendre la note (jouée en même temps que toi)</label>',
   // avec un passage du répertoire, les réglages qui fabriquent la partition (tonalité, rythme, intervalle, articulations, swing) n'ont plus d'effet
-  sync:()=>{const P=REP.find(p=>p.id===val('gRep')),on=!!P;['gTon','gNiv','gAtt','gInt','gArt'].forEach(id=>{if($(id))$(id).disabled=on;});$('gFeel').disabled=on&&!P.swing;},
+  sync:()=>{const P=REP.find(p=>p.id===val('gRep')),on=!!P;['gTon','gNiv','gAtt','gInt','gArt'].forEach(id=>{if($(id))$(id).disabled=on;});const acc=on&&P.n.includes('[');$('gAccN').disabled=!acc;$('gFeel').disabled=on&&(!P.swing||(acc&&val('gAccN')!=='none'));}, // l'accompagnement jazz impose le swing
   make:()=>{
     const P=REP.find(p=>p.id===val('gRep'))||null,met=P?P.met:[4,4];
-    const swing=P?!!P.swing&&SWING:SWING,chrom=!P&&val('gTon')==='chrom',key=P?(LKEYS.find(k=>k[3]===P.sig)||LKEYS[0]):chrom?LKEYS[0]:LKEYS[+val('gTon')],niv=+val('gNiv'),get=P?repMelody(P,val('gArea')):lectureMelody(val('gArea'),key,chrom,niv,+val('gInt'),val('gArt'),val('gAtt'));
+    const accSt=P&&P.n.includes('[')?val('gAccN'):'none',swing=P?!!P.swing&&(SWING||accSt!=='none'):SWING,chrom=!P&&val('gTon')==='chrom',key=P?(LKEYS.find(k=>k[3]===P.sig)||LKEYS[0]):chrom?LKEYS[0]:LKEYS[+val('gTon')],niv=+val('gNiv'),get=P?repMelody(P,val('gArea')):lectureMelody(val('gArea'),key,chrom,niv,+val('gInt'),val('gArt'),val('gAtt'));
     const A=LAREAS.find(a=>a[0]===val('gArea'));
     const board=(n,show)=>{const notes=show?n.locs.map(c=>({s:c.s,fr:c.fr,m:TUN[c.s]+c.fr,root:true,txt:n.name})):[];
       const s=A[0][0]==='s'&&!P?+A[0][1]:null;drawBoard($('gBoard'),{from:0,to:Math.max(12,A[3]||0,...notes.map(x=>x.fr)),notes,hlString:s,label:'Manche',focus:show&&n.locs.length?n.locs[0].fr:(A[2]||6)});};
-    return {sub:12,bpb:P?P.temps:4,items:get,len:n=>n.d12,label:()=>'lis la première ligne',
+    // accompagnement : il suit les accords écrits au-dessus de la portée
+    let accN=0;const accOf=c=>c.acc||(c.acc={idx:accN++,key:keyOf(c.name.match(/^[A-G][♭♯]?/)[0]),name:c.name,pl:c.pl});
+    const nextChord=n=>{for(let j=n.i+1;j<n.i+64;j++){const x=get(j);if(x.chord!==n.chord)return x.chord;}return n.chord;};
+    return {sub:12,bpb:P?P.temps:4,items:get,len:n=>n.d12,label:()=>'lis la première ligne',noClick:accSt!=='none',
       prepare:n=>{$('gStaff').innerHTML=drawStaff(get,0,key,chrom,swing,val('gPick')==='show',met);board(n,false);
         $('gInfo').textContent=P?(P.info||P.c+', '+P.t+', '+P.ref+', '+P.mes+'. Le passage reprend au début quand il est terminé.'):'';},
       show:(n)=>{const idx=n.i;$('gStaff').innerHTML=drawStaff(get,idx,key,chrom,swing,val('gPick')==='show',met);
         $('gLab').textContent='Mesure';$('gNow').className='now cur';$('gNow').textContent=n.bar+1;$('gWhere').textContent=n.rest?'Silence':'Lis la note en corail';$('gNext').innerHTML='';board(n,false);},
       revealFrac:revealFracOpt(),
       reveal:n=>{if(+val('gRev')<0||n.rest)return;board(n,true);$('gWhere').textContent=n.name+' : '+n.locs.map(c=>'case '+c.fr+' '+CORDE_DE[c.s]).join(', ou ');},
-      step:(n,k,t,dur)=>{if(k!==0||n.rest||n.tied||!$('gSnd').checked)return;if(n.tieNext){const bd=60/BPMV,off=swing&&n.beat%1?bd/6:0;pluck(n.m,t+off,n.art?.8:.6,bd*.95-off);return;}const bd=60/BPMV;if(swing&&n.d12===6){const off=n.beat%1!==0;const a=swingArt(n.beat,off,bd);pluck(n.m,t+(off?bd/6:0),a.vel,a.len);}else{const L=Math.max(.25,n.d*bd*.9);pluck(n.m,t,n.art==='acc'?.78:n.art==='marc'?.85:.5,n.art==='stacc'?Math.min(L,.12):n.art==='marc'?Math.min(L,bd*.6):L);}}};
+      step:(n,k,t,dur,r)=>{
+        if(accSt!=='none'&&r%12===0&&n.chord){const bd=60/BPMV,len=n.chLen||4,kb=((r/12)%4)%len;
+          if(kb===0&&ACCPAD[accSt])(ACCPAD[accSt]==='orgue'?organChord:padChord)(n.chord.pl.map(x=>x.m),t,len*bd);
+          accomp(accSt,accOf(n.chord),accOf(nextChord(n)),kb,t,bd,len);}
+        if(k!==0||n.rest||n.tied||!$('gSnd').checked)return;if(n.tieNext){const bd=60/BPMV,off=swing&&n.beat%1?bd/6:0;pluck(n.m,t+off,n.art?.8:.6,bd*.95-off);return;}const bd=60/BPMV;if(swing&&n.d12===6){const off=n.beat%1!==0;const a=swingArt(n.beat,off,bd);pluck(n.m,t+(off?bd/6:0),a.vel,a.len);}else{const L=Math.max(.25,n.d*bd*.9);pluck(n.m,t,n.art==='acc'?.78:n.art==='marc'?.85:.5,n.art==='stacc'?Math.min(L,.12):n.art==='marc'?Math.min(L,bd*.6):L);}}};
   }});
 
 // ===================== Lecture de grille (accords et notation rythmique) =====================
