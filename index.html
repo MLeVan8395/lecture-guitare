@@ -62,8 +62,7 @@ select:disabled{opacity:.4;cursor:default}
 .lvl label.f{flex:1;min-width:0}
 .lvl button{padding:8px 14px;font-weight:700}
 .lvl button:disabled{opacity:.35;cursor:default}
-.lvdesc{grid-column:1/-1;margin:0;padding:0 0 0 18px;font-size:.9rem;color:var(--muted)}
-.lvdesc b{color:var(--ink);font-weight:700}
+.lvdesc{grid-column:1/-1;margin:0;font-size:.95rem;color:var(--ink)}
 #installHelp ol{margin:6px 0 0;padding-left:20px}
 #installHelp li{margin:4px 0}
 button:hover{border-color:var(--accent)}
@@ -161,7 +160,7 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
 </section>
 
 </main>
-<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Déchiffrage Guitare · <span id="appver">version 9</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
+<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Déchiffrage Guitare · <span id="appver">version 10</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
 <script src="contenu/formes.js"></script>
 <script src="contenu/repertoire.js"></script>
 <script src="contenu/phrases.js"></script>
@@ -780,12 +779,6 @@ GAMES.push({id:'lecture',titre:'Lecture de notes',
   niveaux:()=>NIV.notes,
   // les réglages d'un niveau ; quand il propose plusieurs zones ou plusieurs tonalités, on en tire une à chaque partition
   lvParams:L=>({gRep:'',gAccN:'none',gArea:rnd(L.zones||['p0']),gTon:L.armures==='change'?'chrom':String(Math.max(0,LKEYS.findIndex(k=>k[3]===rnd(L.armures||[0])))),gMod:L.modulations||'none',gNiv:String(L.rythme||1),gAtt:String(L.attaques||'var'),gInt:String(L.intervalle||2),gArt:L.articulations||'none'}),
-  lvText:L=>{const lab=(T,v)=>(T.find(x=>String(x[0])===String(v))||['',''])[1],z=L.zones||['p0'],zs=z.map(id=>(LAREAS.find(a=>a[0]===id)||LAREAS[0])[1]),out=[];
-    out.push(['Où jouer',zs.length===1?zs[0]:zs.map(x=>x.split(' : ')[0].replace(' (cases 0 à 12)','')).join(', ')+' (une zone tirée au sort à chaque partition)']);
-    out.push(['Tonalités',L.armures==='change'?'l\'armure change en cours de route, avec quelques altérations de passage':(L.armures||[0]).map(n=>(LKEYS.find(k=>k[3]===n)||LKEYS[0])[0]).join(', ')+((L.armures||[0]).length>1?' (une tonalité tirée au sort à chaque partition)':'')]);
-    out.push(['Rythme',lab(LRYTO,L.rythme||1).toLowerCase()]);out.push(['Plus grand saut',lab(LINTO,L.intervalle||2).toLowerCase()]);
-    if(L.modulations&&L.modulations!=='none')out.push(['Modulations',lab(LMODO,L.modulations).toLowerCase()+', écrites avec des altérations accidentelles']);
-    if(L.articulations&&L.articulations!=='none')out.push(['Articulations',lab(LARTO,L.articulations).toLowerCase()]);return out;},
   make:()=>{
     const P=REP.find(p=>p.id===val('gRep'))||null,met=P?P.met:[4,4];
     const accSt=P&&P.n.includes('[')?val('gAccN'):'none',swing=P?!!P.swing&&(SWING||accSt!=='none'):SWING,chrom=!P&&val('gTon')==='chrom',key=P?(LKEYS.find(k=>k[3]===P.sig)||LKEYS[0]):chrom?LKEYS[0]:LKEYS[+val('gTon')],niv=+val('gNiv'),get=P?repMelody(P,val('gArea')):lectureMelody(val('gArea'),key,chrom,niv,+val('gInt'),val('gArt'),val('gAtt'),val('gMod'));
@@ -887,8 +880,6 @@ GAMES.push({id:'grille',titre:'Lecture de grille',
     +'<label class="chk" style="align-self:end;padding-bottom:8px"><input type="checkbox" id="gSnd" checked> Entendre la grille (jouée en même temps que toi)</label>',
   niveaux:()=>NIV.grille,
   lvParams:L=>({gGLv:String(L.accords||1),gNiv:String(L.rythme||1),gAtt:String(L.attaques||'var'),gPer:String(L.parMesure||'1'),gArt:L.articulations||'none',gGhost:L.ghost||'0'}),
-  lvText:L=>{const lab=(T,v)=>(T.find(x=>String(x[0])===String(v))||['',''])[1],out=[['Accords',lab(GLEV,L.accords||1)],['Rythme',lab(GRYT,L.rythme||1).toLowerCase()],['Changements',{'0.5':'1 accord pour 2 mesures','1':'1 accord par mesure','2':'2 accords par mesure'}[String(L.parMesure||'1')]]];
-    if(L.ghost==='1')out.push(['Ghost notes','débit continu, chaque coup joué ou étouffé']);if(L.articulations&&L.articulations!=='none')out.push(['Articulations',lab(LARTO,L.articulations).toLowerCase()]);return out;},
   make:()=>{
     const lv=+val('gGLv'),niv=+val('gNiv'),per=niv===1?Math.min(1,+val('gPer')):+val('gPer'),get=grilleGen(lv,niv,per,val('gArt'),val('gAtt'),val('gGhost')),pk=val('gPick')==='show',accSt=val('gAcc');
     const board=n=>{const c=n.chord;if(val('gDiag')==='hide'||!c){drawBoard($('gBoard'),{from:0,to:12,notes:[],label:'Manche'});return;}
@@ -934,8 +925,8 @@ function renderGame(){
   $('gTitle').textContent=g.titre;$('gDesc').textContent=g.desc;$('gStaff').innerHTML='';
   $('gMode').hidden=!lv.length;$('mNiv').setAttribute('aria-pressed',niv);$('mLib').setAttribute('aria-pressed',!niv);
   if(niv){const k=Math.min(lv.length-1,Math.max(0,+store.get('lv-'+g.id,'0')||0)),L=lv[k];CURLV=L;LVL=g.lvParams(L);
-    $('gOpts').innerHTML=`<div class="lvl"><button type="button" class="ghost" id="lvPrev" aria-label="Niveau précédent"${k===0?' disabled':''}>◀</button><label class="f">Niveau ${k+1} sur ${lv.length}<select id="gLvl">${lv.map((x,i)=>`<option value="${i}"${i===k?' selected':''}>${i+1}. ${esc(x.t||'Niveau '+(i+1))}</option>`).join('')}</select></label><button type="button" class="ghost" id="lvNext" aria-label="Niveau suivant"${k===lv.length-1?' disabled':''}>▶</button></div>`
-      +`<ul class="lvdesc">${g.lvText(L).map(r=>`<li><b>${esc(r[0])} :</b> ${esc(r[1])}</li>`).join('')}</ul>`+g.optsNiv();
+    $('gOpts').innerHTML=`<div class="lvl"><button type="button" class="ghost" id="lvPrev" aria-label="Niveau précédent"${k===0?' disabled':''}>◀</button><label class="f">Niveau<select id="gLvl">${lv.map((x,i)=>`<option value="${i}"${i===k?' selected':''}>Niveau ${i+1}</option>`).join('')}</select></label><button type="button" class="ghost" id="lvNext" aria-label="Niveau suivant"${k===lv.length-1?' disabled':''}>▶</button></div>`
+      +`<p class="lvdesc">${esc((L.t||'').replace(/\.$/,''))}.</p>`+g.optsNiv();
     const go=n=>{store.set('lv-'+g.id,String(n));if(RUN.on)stopGame();renderGame();};
     $('lvPrev').onclick=()=>go(k-1);$('lvNext').onclick=()=>go(k+1);$('gLvl').onchange=e=>go(+e.target.value);}
   else{CURLV=null;LVL=null;$('gOpts').innerHTML=g.opts();}
