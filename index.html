@@ -172,7 +172,7 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
 </section>
 
 </main>
-<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Déchiffrage Guitare · <span id="appver">version 14</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
+<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Déchiffrage Guitare · <span id="appver">version 15</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
 <script src="contenu/formes.js"></script>
 <script src="contenu/repertoire.js"></script>
 <script src="contenu/phrases.js"></script>
@@ -918,7 +918,7 @@ function micOnsets(sig){
   out.forEach(o=>{o.k=Math.max(0,Math.round(o.k+N/H/4-N/(2*H)));});
   // hauteur de chaque attaque : médiane de quelques fenêtres prises juste après le coup de médiator
   out.forEach((o,q)=>{const s=o.k*H,next=q+1<out.length?out[q+1].k*H:x.length,ms=[];
-    for(const [d,w] of [[.035,512],[.07,512],[.105,512],[.02,384]]){const st=s+Math.round(d*sr);if(st+w<=next-8||(!ms.length&&d===.02&&st+w<=next)){const p=micPitch(x,st,w,sr);if(p)ms.push(p.midi);}}
+    for(const [d,w] of [[.035,512],[.07,512],[.105,512],[.14,512],[.02,384]]){const st=s+Math.round(d*sr);if(st+w<=next-8||(!ms.length&&d===.02&&st+w<=next)){const p=micPitch(x,st,w,sr);if(p)ms.push(p.midi);}}
     ms.sort((a,b)=>a-b);o.midi=ms.length?ms[ms.length>>1]:null;o.time=sig.t0+o.t;
     // même hauteur que la note qui sonnait juste avant, et le son ne remonte pas : ce n'est pas une nouvelle attaque
     const pb=micPitch(x,s-532,512,sr),rise=El[Math.min(K-1,o.k+8)]/(El[Math.max(0,o.k-4)]+1e-12); // 40 ms après : un clic s'est éteint, une vraie note sonne encore
@@ -930,33 +930,38 @@ function micOnsets(sig){
 // Compare les notes attendues (heure prévue, hauteur) avec ce que le micro a entendu
 function gradeAnalyze(rec,exp,meta){ // meta : {bd} durée d'un temps, pour reconnaître les clics du métronome
   const sig=micSignal(rec);if(!sig||!exp.length)return null;
-  const D=micOnsets(sig).filter(o=>o.midi!==null&&o.midi>36&&o.midi<82).map(o=>({t:o.time,m:Math.round(o.midi),used:false})); // les clics du métronome (aigus) et les bruits sans hauteur sont ignorés
+  const D=micOnsets(sig).filter(o=>o.midi!==null&&o.midi>36&&o.midi<82).map(o=>({t:o.time,f:o.midi,m:Math.round(o.midi),used:false})); // les clics du métronome (aigus) et les bruits sans hauteur sont ignorés
   const E=exp.slice().sort((a,b)=>a.t-b.t);
   // retard de l'appareil : le décalage qui fait coïncider le plus de notes justes
   let off=0,best=-1,bestErr=1e9;
   // jusqu'à 1 s de retard : tablettes Android et casques Bluetooth peuvent dépasser 0,4 s
-  for(let o=-.08;o<=1.0;o+=.005){let c=0,err=0;for(const e of E){let b=1;for(const d of D){const dt=Math.abs(d.t-o-e.t);if(dt<b&&d.m===e.n.m)b=dt;}if(b<.07){c++;err+=b;}}
+  for(let o=-.08;o<=1.0;o+=.005){let c=0,err=0;for(const e of E){let b=1;for(const d of D){const dt=Math.abs(d.t-o-e.t);if(dt<b&&Math.abs(d.f-e.n.m)<.75)b=dt;}if(b<.07){c++;err+=b;}}
     if(c>best||(c===best&&err<bestErr)){best=c;bestErr=err;off=o;}}
+  // accord de la guitare : écart médian entre les notes entendues et les notes attendues (guitare un peu basse ou un peu haute)
+  const devs=[];for(const e of E){let b=null,bd2=.07;for(const d of D){const dt=Math.abs(d.t-off-e.t),dv=d.f-e.n.m;if(dt<bd2&&Math.abs(dv)<.75){bd2=dt;b=dv;}}if(b!==null)devs.push(b);}
+  devs.sort((a,b)=>a-b);const tune=devs.length>=4?Math.max(-.6,Math.min(.6,devs[devs.length>>1])):0;
+  // tolérance : 60 cents autour de la note, une fois l'accord compensé ; le demi-ton voisin (100 cents) reste une fausse note
+  const PT=.6,pr=(d,m)=>{const v=d.f-tune-m;return Math.abs(v)<=PT?0:Math.abs(Math.abs(v)-12)<=PT?1:2;};
   // un clic du métronome entendu par-dessus une note qui résonne : sur un temps, sans note attendue, sans hauteur nouvelle
   if(meta&&meta.bd){const bd=meta.bd,e0=E[0],tb=e0.t-(e0.n.beat+e0.n.bar*(meta.bpb||4))*bd;
     for(let j=D.length-1;j>0;j--){const d=D[j],ph=(d.t-off-tb)/bd,nearBeat=Math.abs(ph-Math.round(ph))*bd<.05,expd=E.some(e=>Math.abs(d.t-off-e.t)<.08);
-      if(nearBeat&&!expd&&d.m===D[j-1].m)D.splice(j,1);}}
+      if(nearBeat&&!expd&&Math.abs(d.f-D[j-1].f)<.6)D.splice(j,1);}}
   let sum=0,ok=0,inTime=0,missed=0;const used=new Set();
   E.forEach((e,q)=>{const gp=q>0?e.t-E[q-1].t:1,gn=q<E.length-1?E[q+1].t-e.t:1,tol=Math.min(.18,Math.max(.07,.48*Math.min(gp,gn)));
     let pick=null,rank=9,dist=9;
-    D.forEach((d,j)=>{if(used.has(j))return;const dt=Math.abs(d.t-off-e.t);if(dt>tol)return;const r=d.m===e.n.m?0:Math.abs(d.m-e.n.m)===12?1:2;if(r<rank||(r===rank&&dt<dist)){pick=j;rank=r;dist=dt;}});
+    D.forEach((d,j)=>{if(used.has(j))return;const dt=Math.abs(d.t-off-e.t);if(dt>tol)return;const r=pr(d,e.n.m);if(r<rank||(r===rank&&dt<dist)){pick=j;rank=r;dist=dt;}});
     const n=e.n;if(pick===null){n.gr='bad';n.sc=0;missed++;e.hit=null;return;}
-    used.add(pick);e.hit={m:D[pick].m,dt:D[pick].t-off-e.t};const p=rank===0?1:rank===1?.5:0,ts=dist<=.03?1:dist>=.12?0:1-(dist-.03)/.09,sc=.6*p+.4*ts;
+    used.add(pick);e.hit={m:D[pick].m,f:D[pick].f,dt:D[pick].t-off-e.t};const p=rank===0?1:rank===1?.5:0,ts=dist<=.03?1:dist>=.12?0:1-(dist-.03)/.09,sc=.6*p+.4*ts;
     n.sc=sc;n.gr=p===1&&dist<=.06?'ok':p>0?'mid':'bad';sum+=sc;if(p===1)ok++;if(dist<=.06)inTime++;});
   // notes en trop : jouées entre les notes attendues (une même attaque entendue deux fois ne compte pas)
   const tEnd=E[E.length-1].t+off+.5;let extra=0;
   const bd=meta&&meta.bd,tb=bd?E[0].t-(E[0].n.beat+E[0].n.bar*(meta.bpb||4))*bd:0;
   D.forEach((d,j)=>{if(used.has(j)||d.t<E[0].t+off-.25||d.t>tEnd)return;let near=false;used.forEach(u=>{if(Math.abs(D[u].t-d.t)<.08)near=true;});
-    if(bd&&j>0&&d.m===D[j-1].m){const ph=(d.t-off-tb)/bd;if(Math.abs(ph-Math.round(ph))*bd<.09)near=true;} // clic du métronome sur une note qui résonne
+    if(bd&&j>0&&Math.abs(d.f-D[j-1].f)<.6){const ph=(d.t-off-tb)/bd;if(Math.abs(ph-Math.round(ph))*bd<.09)near=true;} // clic du métronome sur une note qui résonne
     if(!near)extra++;});
   // barème : la proportion réussie, avec une courbe qui rend chaque erreur un peu plus coûteuse (90 % de réussite ≈ 17/20, 70 % ≈ 11,5/20)
   const ratio=Math.max(0,sum-.5*extra)/E.length,note=Math.max(0,Math.round(40*Math.pow(ratio,1.5))/2);
-  return {note,ok,inTime,missed,extra,N:E.length,heard:D.length,off,matched:E.length-missed,E,D,used,onsets:sig?Math.round(sig.x.length/sig.sr):0};
+  return {note,ok,inTime,missed,extra,N:E.length,heard:D.length,off,tune,matched:E.length-missed,E,D,used,onsets:sig?Math.round(sig.x.length/sig.sr):0};
 }
 async function gradeStart(){
   $('gInfo').textContent='';$('gRes').hidden=true;
@@ -976,7 +981,7 @@ function gradeEnd(){
     $('gLab').textContent='Note';$('gNow').className='now cur';$('gNow').textContent=fr(r.note)+' / 20';
     $('gWhere').textContent='Notes justes : '+r.ok+' sur '+r.N+' · En place : '+r.inTime+' sur '+r.N;
     $('gNext').textContent=(r.missed?r.missed+(r.missed>1?' notes oubliées':' note oubliée'):'Aucune note oubliée')+' · '+(r.extra?r.extra+(r.extra>1?' notes en trop':' note en trop'):'aucune note en trop')
-      +' · retard de l\'appareil compensé : '+Math.round(r.off*1000)+' ms'+(r.matched<.5*r.N?'. Peu de notes reconnues : vérifie le micro avec « Tester le micro ».':'');
+      +' · retard de l\'appareil compensé : '+Math.round(r.off*1000)+' ms'+(Math.abs(r.tune)>=.15?' · guitare '+(r.tune<0?'un peu basse':'un peu haute')+' ('+(r.tune>0?'+':'')+Math.round(r.tune*100)+' cents), compensé':'')+(r.matched<.5*r.N?'. Peu de notes reconnues : vérifie le micro avec « Tester le micro ».':'');
     // détail mesure par mesure : on touche une mesure pour la revoir sur la portée, notes en couleur
     const bars=[];G.exp.forEach(e=>{const b=e.n.bar;(bars[b]=bars[b]||[]).push(e.n.sc||0);});
     const first=b=>{let i=0;while(G.g.items(i).bar<b)i++;return i;},colOf=b=>{const v=bars[b];if(!v)return 'var(--line)';const m=v.reduce((a,c)=>a+c,0)/v.length;return m>=.85?GRC.ok:m>=.5?GRC.mid:GRC.bad;};
@@ -990,9 +995,9 @@ function gradeEnd(){
       'Appareil : '+((navigator.userAgent.match(/\(([^)]*)\)/)||['',''])[1])+' · '+((navigator.userAgent.match(/(Chrome|Firefox|Version)\/[\d.]+/)||[''])[0]),
       'Audio : '+G.rec.sr+' Hz · retard sortie '+Math.round((L.out||0)*1000)+' ms, base '+Math.round((L.base||0)*1000)+' ms, micro '+Math.round((st.latency||0)*1000)+' ms · réduction de bruit '+st.noiseSuppression+', annulation d\'écho '+st.echoCancellation+', volume auto '+st.autoGainControl+' · blocs reçus '+G.rec.chunks.length,
       'Tempo '+Math.round(60/G.bd)+' · '+(CURLV?'niveau '+(+store.get('lv-lecture','0')+1):'réglages libres')+' · '+r.N+' notes attendues · '+r.heard+' attaques avec hauteur entendues',
-      'Note '+fr(r.note)+' · justes '+r.ok+' · en place '+r.inTime+' · oubliées '+r.missed+' · en trop '+r.extra+' · retard compensé '+Math.round(r.off*1000)+' ms',
-      'Attendue → entendue (écart en ms) :',
-      r.E.map((e,q)=>(q+1)+'. '+nm(e.n.m)+' → '+(e.hit?nm(e.hit.m)+' '+(e.hit.dt>=0?'+':'')+Math.round(e.hit.dt*1000):'rien')).join(' | '),
+      'Note '+fr(r.note)+' · justes '+r.ok+' · en place '+r.inTime+' · oubliées '+r.missed+' · en trop '+r.extra+' · retard compensé '+Math.round(r.off*1000)+' ms · accord de la guitare '+(r.tune>=0?'+':'')+Math.round(r.tune*100)+' cents',
+      'Attendue → entendue (écart de temps, écart de hauteur en cents) :',
+      r.E.map((e,q)=>(q+1)+'. '+nm(e.n.m)+' → '+(e.hit?nm(e.hit.m)+' '+(e.hit.dt>=0?'+':'')+Math.round(e.hit.dt*1000)+' ms '+(e.hit.f-r.tune-e.n.m>=0?'+':'')+Math.round((e.hit.f-r.tune-e.n.m)*100)+' c':'rien')).join(' | '),
       'Attaques non retenues : '+r.D.filter((d,j)=>!r.used.has(j)).slice(0,40).map(d=>(d.t-r.off-r.E[0].t).toFixed(2)+' s '+nm(d.m)).join(' | ')].join('\n');
     const box=document.createElement('div');box.style.marginTop='12px';
     box.innerHTML='<button type="button" class="ghost" id="repCopy">Copier le rapport détaillé</button> <span class="meta" id="repMsg"></span><textarea id="repTxt" readonly style="display:none;width:100%;height:140px;margin-top:8px;font-size:12px"></textarea>';
