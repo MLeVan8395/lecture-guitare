@@ -172,7 +172,7 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
 </section>
 
 </main>
-<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Déchiffrage Guitare · <span id="appver">version 15</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
+<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Déchiffrage Guitare · <span id="appver">version 16</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
 <script src="contenu/formes.js"></script>
 <script src="contenu/repertoire.js"></script>
 <script src="contenu/phrases.js"></script>
@@ -947,12 +947,13 @@ function gradeAnalyze(rec,exp,meta){ // meta : {bd} durée d'un temps, pour reco
     for(let j=D.length-1;j>0;j--){const d=D[j],ph=(d.t-off-tb)/bd,nearBeat=Math.abs(ph-Math.round(ph))*bd<.05,expd=E.some(e=>Math.abs(d.t-off-e.t)<.08);
       if(nearBeat&&!expd&&Math.abs(d.f-D[j-1].f)<.6)D.splice(j,1);}}
   let sum=0,ok=0,inTime=0,missed=0;const used=new Set();
-  E.forEach((e,q)=>{const gp=q>0?e.t-E[q-1].t:1,gn=q<E.length-1?E[q+1].t-e.t:1,tol=Math.min(.18,Math.max(.07,.48*Math.min(gp,gn)));
+  E.forEach((e,q)=>{const gp=q>0?e.t-E[q-1].t:1,gn=q<E.length-1?E[q+1].t-e.t:1,tol=Math.min(.25,Math.max(.1,.48*Math.min(gp,gn))); // on cherche la note jusqu'à 250 ms de part et d'autre, sans empiéter sur ses voisines
     let pick=null,rank=9,dist=9;
     D.forEach((d,j)=>{if(used.has(j))return;const dt=Math.abs(d.t-off-e.t);if(dt>tol)return;const r=pr(d,e.n.m);if(r<rank||(r===rank&&dt<dist)){pick=j;rank=r;dist=dt;}});
     const n=e.n;if(pick===null){n.gr='bad';n.sc=0;missed++;e.hit=null;return;}
-    used.add(pick);e.hit={m:D[pick].m,f:D[pick].f,dt:D[pick].t-off-e.t};const p=rank===0?1:rank===1?.5:0,ts=dist<=.03?1:dist>=.12?0:1-(dist-.03)/.09,sc=.6*p+.4*ts;
-    n.sc=sc;n.gr=p===1&&dist<=.06?'ok':p>0?'mid':'bad';sum+=sc;if(p===1)ok++;if(dist<=.06)inTime++;});
+    used.add(pick);e.hit={m:D[pick].m,f:D[pick].f,dt:D[pick].t-off-e.t};const p=rank===0?1:rank===1?.5:0,ts=dist<=.05?1:dist>=.2?0:1-(dist-.05)/.15, // rythme : pleine valeur jusqu'à 50 ms d'écart, plus rien au-delà de 200 ms
+      sc=.6*p+.4*ts;
+    n.sc=sc;n.gr=p===1&&dist<=.1?'ok':p>0?'mid':'bad';sum+=sc;if(p===1)ok++;if(dist<=.1)inTime++; /* « en place » : à moins de 100 ms */});
   // notes en trop : jouées entre les notes attendues (une même attaque entendue deux fois ne compte pas)
   const tEnd=E[E.length-1].t+off+.5;let extra=0;
   const bd=meta&&meta.bd,tb=bd?E[0].t-(E[0].n.beat+E[0].n.bar*(meta.bpb||4))*bd:0;
