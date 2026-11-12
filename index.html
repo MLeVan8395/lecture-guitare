@@ -172,7 +172,7 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
 </section>
 
 </main>
-<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Déchiffrage Guitare · <span id="appver">version 13</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
+<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Déchiffrage Guitare · <span id="appver">version 14</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
 <script src="contenu/formes.js"></script>
 <script src="contenu/repertoire.js"></script>
 <script src="contenu/phrases.js"></script>
@@ -859,7 +859,8 @@ async function micOpen(){
   const ac=ctx();if(ac.state==='suspended')await ac.resume();
   const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
   const src=ac.createMediaStreamSource(stream),sink=ac.createGain(),chunks=[];sink.gain.value=0;sink.connect(ac.destination);
-  const rec={on:true,chunks,sr:ac.sampleRate,close(){if(!rec.on)return;rec.on=false;try{src.disconnect();node.disconnect();sink.disconnect();}catch(e){}stream.getTracks().forEach(t=>t.stop());}};
+  const tr0=stream.getAudioTracks()[0];let stg={};try{stg=tr0&&tr0.getSettings?tr0.getSettings():{};}catch(e){}
+  const rec={on:true,chunks,sr:ac.sampleRate,stg,lat:{out:ac.outputLatency||0,base:ac.baseLatency||0},close(){if(!rec.on)return;rec.on=false;try{src.disconnect();node.disconnect();sink.disconnect();}catch(e){}stream.getTracks().forEach(t=>t.stop());}};
   let node;
   try{ // AudioWorklet : chaque bloc arrive avec l'heure exacte de l'horloge audio
     const code="class R extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(2048);this.n=0;this.t=0;}process(i){const c=i[0]&&i[0][0];if(c){if(this.n===0)this.t=currentTime;this.b.set(c,this.n);this.n+=c.length;if(this.n>=2048){this.port.postMessage({t:this.t,d:this.b.slice(0)});this.n=0;}}return true;}}registerProcessor('lecg-micro',R);";
@@ -944,8 +945,8 @@ function gradeAnalyze(rec,exp,meta){ // meta : {bd} durée d'un temps, pour reco
   E.forEach((e,q)=>{const gp=q>0?e.t-E[q-1].t:1,gn=q<E.length-1?E[q+1].t-e.t:1,tol=Math.min(.18,Math.max(.07,.48*Math.min(gp,gn)));
     let pick=null,rank=9,dist=9;
     D.forEach((d,j)=>{if(used.has(j))return;const dt=Math.abs(d.t-off-e.t);if(dt>tol)return;const r=d.m===e.n.m?0:Math.abs(d.m-e.n.m)===12?1:2;if(r<rank||(r===rank&&dt<dist)){pick=j;rank=r;dist=dt;}});
-    const n=e.n;if(pick===null){n.gr='bad';n.sc=0;missed++;return;}
-    used.add(pick);const p=rank===0?1:rank===1?.5:0,ts=dist<=.03?1:dist>=.12?0:1-(dist-.03)/.09,sc=.6*p+.4*ts;
+    const n=e.n;if(pick===null){n.gr='bad';n.sc=0;missed++;e.hit=null;return;}
+    used.add(pick);e.hit={m:D[pick].m,dt:D[pick].t-off-e.t};const p=rank===0?1:rank===1?.5:0,ts=dist<=.03?1:dist>=.12?0:1-(dist-.03)/.09,sc=.6*p+.4*ts;
     n.sc=sc;n.gr=p===1&&dist<=.06?'ok':p>0?'mid':'bad';sum+=sc;if(p===1)ok++;if(dist<=.06)inTime++;});
   // notes en trop : jouées entre les notes attendues (une même attaque entendue deux fois ne compte pas)
   const tEnd=E[E.length-1].t+off+.5;let extra=0;
@@ -955,7 +956,7 @@ function gradeAnalyze(rec,exp,meta){ // meta : {bd} durée d'un temps, pour reco
     if(!near)extra++;});
   // barème : la proportion réussie, avec une courbe qui rend chaque erreur un peu plus coûteuse (90 % de réussite ≈ 17/20, 70 % ≈ 11,5/20)
   const ratio=Math.max(0,sum-.5*extra)/E.length,note=Math.max(0,Math.round(40*Math.pow(ratio,1.5))/2);
-  return {note,ok,inTime,missed,extra,N:E.length,heard:D.length,off,matched:E.length-missed};
+  return {note,ok,inTime,missed,extra,N:E.length,heard:D.length,off,matched:E.length-missed,E,D,used,onsets:sig?Math.round(sig.x.length/sig.sr):0};
 }
 async function gradeStart(){
   $('gInfo').textContent='';$('gRes').hidden=true;
@@ -982,7 +983,22 @@ function gradeEnd(){
     const R=$('gRes');R.innerHTML='<div class="cells">'+Array.from({length:GRADE_BARS},(_,b)=>`<button type="button" data-b="${b}" style="background:${colOf(b)}" aria-label="Mesure ${b+1}">${b+1}</button>`).join('')+'</div>'
       +'<div class="legend"><span><i style="background:'+GRC.ok+'"></i>juste et en place</span><span><i style="background:'+GRC.mid+'"></i>juste mais en décalage, ou à l\'octave</span><span><i style="background:'+GRC.bad+'"></i>fausse ou oubliée</span></div>';
     const showBar=b=>{G.g.review(first(b));R.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',+x.dataset.b>=Math.floor(b/8)*8&&+x.dataset.b<Math.floor(b/8)*8+8));};
-    R.querySelectorAll('button').forEach(x=>x.onclick=()=>showBar(+x.dataset.b));R.hidden=false;showBar(0);
+    R.querySelectorAll('.cells button').forEach(x=>x.onclick=()=>showBar(+x.dataset.b));R.hidden=false;showBar(0);
+    // rapport détaillé, à copier pour signaler un souci de reconnaissance
+    const nm=m=>FRN[mod(m,12)]+(Math.floor(m/12)-2),st=G.rec.stg||{},L=G.rec.lat||{};
+    const rep=['Déchiffrage Guitare '+$('appver').textContent+' · rapport du mode noté',
+      'Appareil : '+((navigator.userAgent.match(/\(([^)]*)\)/)||['',''])[1])+' · '+((navigator.userAgent.match(/(Chrome|Firefox|Version)\/[\d.]+/)||[''])[0]),
+      'Audio : '+G.rec.sr+' Hz · retard sortie '+Math.round((L.out||0)*1000)+' ms, base '+Math.round((L.base||0)*1000)+' ms, micro '+Math.round((st.latency||0)*1000)+' ms · réduction de bruit '+st.noiseSuppression+', annulation d\'écho '+st.echoCancellation+', volume auto '+st.autoGainControl+' · blocs reçus '+G.rec.chunks.length,
+      'Tempo '+Math.round(60/G.bd)+' · '+(CURLV?'niveau '+(+store.get('lv-lecture','0')+1):'réglages libres')+' · '+r.N+' notes attendues · '+r.heard+' attaques avec hauteur entendues',
+      'Note '+fr(r.note)+' · justes '+r.ok+' · en place '+r.inTime+' · oubliées '+r.missed+' · en trop '+r.extra+' · retard compensé '+Math.round(r.off*1000)+' ms',
+      'Attendue → entendue (écart en ms) :',
+      r.E.map((e,q)=>(q+1)+'. '+nm(e.n.m)+' → '+(e.hit?nm(e.hit.m)+' '+(e.hit.dt>=0?'+':'')+Math.round(e.hit.dt*1000):'rien')).join(' | '),
+      'Attaques non retenues : '+r.D.filter((d,j)=>!r.used.has(j)).slice(0,40).map(d=>(d.t-r.off-r.E[0].t).toFixed(2)+' s '+nm(d.m)).join(' | ')].join('\n');
+    const box=document.createElement('div');box.style.marginTop='12px';
+    box.innerHTML='<button type="button" class="ghost" id="repCopy">Copier le rapport détaillé</button> <span class="meta" id="repMsg"></span><textarea id="repTxt" readonly style="display:none;width:100%;height:140px;margin-top:8px;font-size:12px"></textarea>';
+    R.appendChild(box);$('repTxt').value=rep;
+    $('repCopy').onclick=async()=>{try{await navigator.clipboard.writeText(rep);$('repMsg').textContent='Copié : colle-le dans ta conversation avec Claude.';}
+      catch(e){$('repTxt').style.display='block';$('repTxt').focus();$('repTxt').select();$('repMsg').textContent='Sélectionne le texte ci-dessous et copie-le.';}};
   },60);
 }
 // Test du micro : niveau sonore et note reconnue en direct (avant de jouer, pas pendant)
