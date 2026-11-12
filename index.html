@@ -159,7 +159,10 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
         <div class="beats" id="gBeats"></div>
       </div>
     </div>
-    <p class="meta" id="gEvalHelp" hidden style="margin:10px 0 0">Mode noté : l'appli écoute ta guitare au micro pendant 16 mesures, puis te donne une note sur 20 (notes justes pour 60 %, mise en place rythmique pour 40 %). Joue près du micro de l'appareil, avec un casque si possible. L'appli ne joue pas la note et n'affiche pas la réponse sur le manche.</p>
+    <p class="meta" id="gEvalHelp" hidden style="margin:10px 0 0">Mode noté : l'appli écoute ta guitare au micro pendant 16 mesures, puis te donne une note sur 20 (notes justes pour 60 %, mise en place rythmique pour 40 %). Joue près du micro de l'appareil, avec un casque si possible. L'appli ne joue pas la note et n'affiche pas la réponse sur le manche.<br><button type="button" class="ghost" id="micTest" style="margin-top:8px">🎤 Tester le micro</button></p>
+    <div class="card" id="micPanel" hidden style="margin-top:10px;padding:12px 14px"><div class="meta" style="margin-bottom:6px">Joue une note à la fois : l'appli affiche ce qu'elle entend.</div>
+      <div style="height:10px;border-radius:5px;background:var(--line);overflow:hidden"><div id="micLvl" style="height:100%;width:0;background:var(--green)"></div></div>
+      <div id="micNote" style="font-size:2rem;font-weight:700;margin:8px 0 2px">–</div><div class="meta" id="micInfo"></div></div>
     <div class="staffwrap" id="gStaff"></div>
     <div class="gres" id="gRes" hidden></div>
     <div class="board" id="gBoard"></div>
@@ -169,7 +172,7 @@ label.chk input{width:18px;height:18px;accent-color:var(--accent)}
 </section>
 
 </main>
-<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Déchiffrage Guitare · <span id="appver">version 12</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
+<footer class="meta" style="max-width:1100px;margin:0 auto;padding:0 20px 30px;text-align:center">Déchiffrage Guitare · <span id="appver">version 13</span> · © 2026 Mickael Le Van<br><span style="font-size:12px">Sons : basse <a href="https://www.karoryfer.com/karoryfer-samples" target="_blank" rel="noopener">Karoryfer Samples</a> (CC BY 3.0) · Passages de J.-S. Bach : saisies du <a href="https://www.mutopiaproject.org" target="_blank" rel="noopener">Mutopia Project</a> (domaine public et CC BY-SA 3.0) · batterie Virtuosity Drums et contrebasse <a href="https://github.com/sgossner/VSCO-2-CE" target="_blank" rel="noopener">VSCO 2</a> (CC0)</span></footer>
 <script src="contenu/formes.js"></script>
 <script src="contenu/repertoire.js"></script>
 <script src="contenu/phrases.js"></script>
@@ -930,7 +933,8 @@ function gradeAnalyze(rec,exp,meta){ // meta : {bd} durée d'un temps, pour reco
   const E=exp.slice().sort((a,b)=>a.t-b.t);
   // retard de l'appareil : le décalage qui fait coïncider le plus de notes justes
   let off=0,best=-1,bestErr=1e9;
-  for(let o=-.06;o<=.4;o+=.005){let c=0,err=0;for(const e of E){let b=1;for(const d of D){const dt=Math.abs(d.t-o-e.t);if(dt<b&&d.m===e.n.m)b=dt;}if(b<.07){c++;err+=b;}}
+  // jusqu'à 1 s de retard : tablettes Android et casques Bluetooth peuvent dépasser 0,4 s
+  for(let o=-.08;o<=1.0;o+=.005){let c=0,err=0;for(const e of E){let b=1;for(const d of D){const dt=Math.abs(d.t-o-e.t);if(dt<b&&d.m===e.n.m)b=dt;}if(b<.07){c++;err+=b;}}
     if(c>best||(c===best&&err<bestErr)){best=c;bestErr=err;off=o;}}
   // un clic du métronome entendu par-dessus une note qui résonne : sur un temps, sans note attendue, sans hauteur nouvelle
   if(meta&&meta.bd){const bd=meta.bd,e0=E[0],tb=e0.t-(e0.n.beat+e0.n.bar*(meta.bpb||4))*bd;
@@ -951,7 +955,7 @@ function gradeAnalyze(rec,exp,meta){ // meta : {bd} durée d'un temps, pour reco
     if(!near)extra++;});
   // barème : la proportion réussie, avec une courbe qui rend chaque erreur un peu plus coûteuse (90 % de réussite ≈ 17/20, 70 % ≈ 11,5/20)
   const ratio=Math.max(0,sum-.5*extra)/E.length,note=Math.max(0,Math.round(40*Math.pow(ratio,1.5))/2);
-  return {note,ok,inTime,missed,extra,N:E.length,heard:D.length,off};
+  return {note,ok,inTime,missed,extra,N:E.length,heard:D.length,off,matched:E.length-missed};
 }
 async function gradeStart(){
   $('gInfo').textContent='';$('gRes').hidden=true;
@@ -970,7 +974,8 @@ function gradeEnd(){
     const fr=v=>String(v).replace('.',',');
     $('gLab').textContent='Note';$('gNow').className='now cur';$('gNow').textContent=fr(r.note)+' / 20';
     $('gWhere').textContent='Notes justes : '+r.ok+' sur '+r.N+' · En place : '+r.inTime+' sur '+r.N;
-    $('gNext').textContent=(r.missed?r.missed+(r.missed>1?' notes oubliées':' note oubliée'):'Aucune note oubliée')+' · '+(r.extra?r.extra+(r.extra>1?' notes en trop':' note en trop'):'aucune note en trop');
+    $('gNext').textContent=(r.missed?r.missed+(r.missed>1?' notes oubliées':' note oubliée'):'Aucune note oubliée')+' · '+(r.extra?r.extra+(r.extra>1?' notes en trop':' note en trop'):'aucune note en trop')
+      +' · retard de l\'appareil compensé : '+Math.round(r.off*1000)+' ms'+(r.matched<.5*r.N?'. Peu de notes reconnues : vérifie le micro avec « Tester le micro ».':'');
     // détail mesure par mesure : on touche une mesure pour la revoir sur la portée, notes en couleur
     const bars=[];G.exp.forEach(e=>{const b=e.n.bar;(bars[b]=bars[b]||[]).push(e.n.sc||0);});
     const first=b=>{let i=0;while(G.g.items(i).bar<b)i++;return i;},colOf=b=>{const v=bars[b];if(!v)return 'var(--line)';const m=v.reduce((a,c)=>a+c,0)/v.length;return m>=.85?GRC.ok:m>=.5?GRC.mid:GRC.bad;};
@@ -980,7 +985,29 @@ function gradeEnd(){
     R.querySelectorAll('button').forEach(x=>x.onclick=()=>showBar(+x.dataset.b));R.hidden=false;showBar(0);
   },60);
 }
-function setEval(m){EVAL=m;store.set('eval',m);document.querySelectorAll('#gEval button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.e===m));const on=m==='note'&&GAMES[GI].id==='lecture';$('gEvalHelp').hidden=!on;
+// Test du micro : niveau sonore et note reconnue en direct (avant de jouer, pas pendant)
+const FRN=['Do','Do♯','Ré','Ré♯','Mi','Fa','Fa♯','Sol','Sol♯','La','La♯','Si'];let MICT=null;
+async function micTestToggle(){
+  if(MICT){micTestStop();return;}
+  const P=$('micPanel');P.hidden=false;$('micNote').textContent='…';$('micInfo').textContent='';
+  try{const ac=ctx();if(ac.state==='suspended')await ac.resume();
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw Object.assign(new Error('micro absent'),{name:'NoMic'});
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+    const src=ac.createMediaStreamSource(stream),an=ac.createAnalyser();an.fftSize=4096;src.connect(an);const buf=new Float32Array(an.fftSize);
+    const tr=stream.getAudioTracks()[0],st=tr&&tr.getSettings?tr.getSettings():{};
+    const warn=[st.noiseSuppression&&'une réduction de bruit',st.echoCancellation&&'une annulation d\'écho',st.autoGainControl&&'un réglage automatique du volume'].filter(Boolean);
+    const lat=Math.round(((ac.outputLatency||0)+(ac.baseLatency||0)+(st.latency||0))*1000);
+    $('micInfo').textContent=(warn.length?'Attention : l\'appareil impose '+warn.join(', ')+' ; la reconnaissance peut en souffrir. ':'Micro prêt, sans traitement du son. ')+(lat?'Retard annoncé par l\'appareil : '+lat+' ms.':'');
+    MICT={stream,src,iv:setInterval(()=>{an.getFloatTimeDomainData(buf);let e=0;for(const v of buf)e+=v*v;const rms=Math.sqrt(e/buf.length);
+      $('micLvl').style.width=Math.min(100,Math.round(Math.sqrt(rms)*220))+'%';$('micLvl').style.background=rms>.5?'var(--red)':'var(--green)';
+      const p=rms>.004?micPitch(buf,0,2048,ac.sampleRate):null;
+      if(p&&p.midi>36&&p.midi<84){const m=Math.round(p.midi),c=Math.round((p.midi-m)*100);$('micNote').textContent=FRN[mod(m,12)]+(Math.floor(m/12)-2)+'  ('+Math.round(440*Math.pow(2,(p.midi-69)/12))+' Hz'+(Math.abs(c)>15?', '+(c>0?'+':'')+c+' cents':'')+')';}
+      else if(rms<.002)$('micNote').textContent='–';},120)};
+    $('micTest').textContent='■ Arrêter le test';
+  }catch(e){$('micNote').textContent='';const n=e&&e.name;$('micInfo').textContent=n==='NotAllowedError'||n==='SecurityError'?'Le micro n\'est pas autorisé pour ce site : autorise-le dans les réglages du navigateur (icône à gauche de l\'adresse), puis recommence.':n==='NotFoundError'?'Aucun micro trouvé sur cet appareil.':'Le micro n\'est pas disponible ici : ouvre l\'appli depuis https://mlevan8395.github.io/lecture-guitare/ ou depuis l\'appli installée.';}
+}
+function micTestStop(){if(!MICT)return;clearInterval(MICT.iv);try{MICT.src.disconnect();}catch(e){}MICT.stream.getTracks().forEach(t=>t.stop());MICT=null;$('micTest').textContent='🎤 Tester le micro';$('micPanel').hidden=true;}
+function setEval(m){if(m!=='note')micTestStop();EVAL=m;store.set('eval',m);document.querySelectorAll('#gEval button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.e===m));const on=m==='note'&&GAMES[GI].id==='lecture';$('gEvalHelp').hidden=!on;
   ['gSnd','gRev'].forEach(id=>{const e=$(id);if(e)e.disabled=on;}); // en mode noté, l'appli ne joue pas la note et ne montre pas la réponse
 }
 
@@ -1137,10 +1164,11 @@ function start(){
   document.querySelectorAll('.tempo [data-t]').forEach(b=>b.onclick=()=>setTempo(b.dataset.t));
   $('bpmMinus').onclick=()=>{BPMV=Math.max(30,BPMV-5);store.set('bpm',BPMV);showTempo();};
   $('bpmPlus').onclick=()=>{BPMV=Math.min(240,BPMV+5);store.set('bpm',BPMV);showTempo();};
-  $('gGo').onclick=()=>{if(RUN.on){stopGame();return;}$('gRes').hidden=true;if(EVAL==='note'&&GAMES[GI].id==='lecture'){gradeStart();return;}try{startGame(makeGame());}catch(e){console.error(e);$('gInfo').textContent='Impossible de démarrer cet exercice.';stopGame();}};
+  $('gGo').onclick=()=>{if(RUN.on){stopGame();return;}micTestStop();$('gRes').hidden=true;if(EVAL==='note'&&GAMES[GI].id==='lecture'){gradeStart();return;}try{startGame(makeGame());}catch(e){console.error(e);$('gInfo').textContent='Impossible de démarrer cet exercice.';stopGame();}};
   $('hD').onclick=()=>setHand(false);$('hG').onclick=()=>setHand(true);$('hD').setAttribute('aria-pressed',!LEFTY);$('hG').setAttribute('aria-pressed',LEFTY);
   $('theme').onclick=()=>{const l=document.documentElement.getAttribute('data-theme')==='light';document.documentElement.setAttribute('data-theme',l?'dark':'light');store.set('theme',l?'dark':'light');setThemeBtn();};
   setThemeBtn();
+  $('micTest').onclick=micTestToggle;
   EVAL=store.get('eval','train')==='note'?'note':'train';document.querySelectorAll('#gEval button').forEach(b=>b.onclick=()=>{if(RUN.on)stopGame();setEval(b.dataset.e);});
   const setMode=m=>{store.set('mode-'+GAMES[GI].id,m);if(RUN.on)stopGame();renderGame();};$('mNiv').onclick=()=>setMode('niv');$('mLib').onclick=()=>setMode('libre');
   window.addEventListener('hashchange',route);route();
